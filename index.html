@@ -34,7 +34,8 @@ header img{height:34px}
 .hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;position:relative;overflow:hidden}
 .hero:after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:var(--glow)}
 .hl{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);font-weight:700}
-.tots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.tots{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+@media(max-width:620px){.tots{grid-template-columns:repeat(2,1fr)}}
 .tot{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:11px 12px;cursor:pointer;transition:.2s}
 .tot.on{border-color:var(--gold2);background:rgba(220,188,106,.08)}
 .tot .c{font-size:11px;color:var(--mut);font-weight:700;letter-spacing:1px}
@@ -93,8 +94,8 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </div>
 <script>
 const FEED = 'https://script.google.com/macros/s/AKfycbxzrkpanri4fZax5EbZDgDj324CAkcneQMxe3Ylcl_zPMP-Covk_-vPUgUWB3EFsptOFg/exec';
-const CUR = ['USD','SAR','OMR'];
-const TO_USD = {USD:1, SAR:1/3.75, OMR:2.6};
+const CUR = ['USD','SAR','OMR','AED'];
+const TO_USD = {USD:1, SAR:1/3.75, OMR:2.6, AED:1/3.6725};
 let data = null, curF = null, sortK = 'value', pinBuf = '';
 const $ = s => document.querySelector(s);
 const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
