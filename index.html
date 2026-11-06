@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dento Art · Collections</title>
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Collections">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#0a0a0a;--card:#151515;--card2:#1c1c1c;--line:#262626;--gold:#dcbc6a;--gold2:#c9a227;--txt:#f4f1ea;--mut:#9a948a;--green:#3ecf8e;--orange:#f0a24a;--red:#ef5350}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif}
+body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;margin:6px 0 18px}
+header img{height:34px}
+.upd{font-size:11px;color:var(--mut);text-align:right;line-height:1.4}
+.upd b{color:var(--gold);font-weight:600}
+.btn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600}
+.hero{background:linear-gradient(135deg,#141414,#0d0d0d);border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(220,188,106,.06)}
+.hl{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);font-weight:700}
+.tots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.tot{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:11px 12px;cursor:pointer;transition:.2s}
+.tot.on{border-color:var(--gold2);background:rgba(220,188,106,.08)}
+.tot .c{font-size:11px;color:var(--mut);font-weight:700;letter-spacing:1px}
+.tot .v{font-size:clamp(14px,4.6vw,19px);font-weight:800;color:var(--gold);margin-top:3px;letter-spacing:-.3px;white-space:nowrap}
+.tot .n{font-size:11px;color:var(--mut);margin-top:2px}
+.strip{height:3px;border-radius:3px;background:linear-gradient(90deg,#a07a28,#f2dc9b 50%,#a07a28);margin:16px 0}
+.tools{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.search{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 14px;color:var(--txt);font-size:15px;outline:none}
+.search:focus{border-color:var(--gold2)}
+.sorts{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.chip{white-space:nowrap;background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--gold);color:#111;border-color:var(--gold)}
+.list{display:flex;flex-direction:column;gap:9px}
+.row{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;animation:in .35s ease both}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.nm{font-weight:700;font-size:15px;letter-spacing:.1px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amt{font-weight:800;font-size:17px;color:var(--gold);text-align:right;white-space:nowrap}
+.amt small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
+.meta{font-size:12.5px;color:var(--mut)}
+.meta b{color:var(--txt);font-weight:600}
+.badge{justify-self:end;font-size:11px;font-weight:800;border-radius:999px;padding:4px 9px;letter-spacing:.3px}
+.g{background:rgba(62,207,142,.12);color:var(--green)}.o{background:rgba(240,162,74,.14);color:var(--orange)}.r{background:rgba(239,83,80,.15);color:var(--red)}
+.empty,.msg{color:var(--mut);text-align:center;padding:40px 10px;font-size:14px}
+.pin{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;z-index:9;padding:24px}
+.pin img{height:46px}
+.pin .t{color:var(--mut);font-size:13px;letter-spacing:2px;text-transform:uppercase}
+.dots{display:flex;gap:14px}.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--gold2)}.dot.f{background:var(--gold)}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px}
+.pad button{height:72px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:26px;font-weight:500}
+.pad button:active{background:var(--card2)}
+.err{color:var(--red);font-size:13px;height:16px}
+.shake{animation:sh .4s}@keyframes sh{0%,100%{transform:none}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@media(max-width:380px){.tots{gap:7px}.tot{padding:10px 9px}.amt{font-size:15.5px}}
+footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="pin" id="pin">
+  <img src="logo.png" alt="Dento Art">
+  <div class="t">Enter PIN</div>
+  <div class="dots" id="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  <div class="err" id="err"></div>
+  <div class="pad" id="pad"></div>
+</div>
+<div class="wrap" id="app" hidden>
+  <header><img src="logo.png" alt="Dento Art"><div class="upd" id="upd">Loading…</div></header>
+  <div class="hero">
+    <div class="hl">Outstanding balances</div>
+    <div class="tots" id="tots"></div>
+  </div>
+  <div class="strip"></div>
+  <div class="tools"><input class="search" id="q" placeholder="Search clinic or doctor" autocomplete="off"><button class="btn" id="rf">↻</button></div>
+  <div class="sorts" id="sorts"></div>
+  <div class="list" id="list"><div class="msg">Loading…</div></div>
+  <footer>Dento Art Dental Lab · Collections</footer>
+</div>
+<script>
+const FEED = 'https://script.google.com/macros/s/AKfycbxzrkpanri4fZax5EbZDgDj324CAkcneQMxe3Ylcl_zPMP-Covk_-vPUgUWB3EFsptOFg/exec';
+const CUR = ['USD','SAR','OMR'];
+const TO_USD = {USD:1, SAR:1/3.75, OMR:2.6};
+let data = null, curF = null, sortK = 'value', pinBuf = '';
+const $ = s => document.querySelector(s);
+const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} }, del(k){ try{localStorage.removeItem(k)}catch(e){} } };
+
+function jsonp(url){ return new Promise((res,rej)=>{ const cb='cb'+Date.now()+Math.floor(Math.random()*1e4); const s=document.createElement('script');
+  const t=setTimeout(()=>{cleanup();rej(new Error('timeout'))},20000);
+  function cleanup(){clearTimeout(t);delete window[cb];s.remove()}
+  window[cb]=d=>{cleanup();res(d)}; s.onerror=()=>{cleanup();rej(new Error('network'))};
+  s.src=url+(url.includes('?')?'&':'?')+'callback='+cb; document.head.appendChild(s); }); }
+
+async function load(pin){
+  const d = await jsonp(FEED+'?key='+encodeURIComponent(pin));
+  if(!d.ok) throw new Error(d.error||'error');
+  return d;
+}
+function days(r){ let iso=r.lastPay; if(!iso){ const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(r.lastPayText||''); if(m) iso=m[3]+'-'+m[2]+'-'+m[1]; } if(!iso) return null; const a=new Date(iso+'T00:00:00'); return Math.max(0,Math.floor((Date.now()-a)/864e5)); }
+function render(){
+  if(!data) return;
+  const rows = data.rows.map(r=>({...r, d:days(r)}));
+  // totals
+  $('#tots').innerHTML = CUR.map(c=>{ const rs=rows.filter(r=>r.cur===c); const s=rs.reduce((a,r)=>a+r.due,0);
+    return `<div class="tot ${curF===c?'on':''}" data-c="${c}"><div class="c">${c}</div><div class="v">${fmt(s)}</div><div class="n">${rs.length} client${rs.length===1?'':'s'}</div></div>`}).join('');
+  document.querySelectorAll('.tot').forEach(el=>el.onclick=()=>{curF = curF===el.dataset.c?null:el.dataset.c; render();});
+  const sorts=[['value','Highest'],['days','Longest unpaid'],['name','A–Z']];
+  $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'');
+  document.querySelectorAll('.chip').forEach(el=>el.onclick=()=>{ if(el.dataset.x){curF=null}else{sortK=el.dataset.k} render(); });
+  const q=$('#q').value.trim().toLowerCase();
+  let list = rows.filter(r=>(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q)));
+  if(sortK==='value') list.sort((a,b)=>b.due*TO_USD[b.cur]-a.due*TO_USD[a.cur]);
+  if(sortK==='days') list.sort((a,b)=>(b.d===null?1e9:b.d)-(a.d===null?1e9:a.d));
+  if(sortK==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
+  $('#list').innerHTML = list.length ? list.map((r,i)=>{
+    const cls = r.d===null?'r':r.d<=30?'g':r.d<=60?'o':'r';
+    const badge = r.d===null?'Never paid':(r.d===0?'Today':r.d+' days');
+    const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : 'No payment yet';
+    return `<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span></div>`;
+  }).join('') : '<div class="empty">No matches</div>';
+  const u = data.updated ? new Date(data.updated) : null;
+  $('#upd').innerHTML = `Live from the tracker<br><b>${u?u.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</b>`;
+}
+async function refresh(){
+  $('#upd').textContent='Updating…';
+  try{ data = await load(store.get('pin')); render(); }
+  catch(e){ if(e.message==='bad_pin'){ store.del('pin'); showPin(); } else { $('#upd').textContent='Offline – tap ↻'; } }
+}
+function showPin(){
+  $('#app').hidden=true; $('#pin').style.display='flex'; pinBuf=''; drawDots();
+  $('#pad').innerHTML=[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?'<span></span>':`<button data-k="${k}">${k}</button>`).join('');
+  document.querySelectorAll('#pad button').forEach(b=>b.onclick=()=>press(b.dataset.k));
+}
+function drawDots(){ document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('f',i<pinBuf.length)); }
+async function press(k){
+  if(k==='⌫'){ pinBuf=pinBuf.slice(0,-1); drawDots(); return; }
+  if(pinBuf.length>=4) return;
+  pinBuf+=k; drawDots(); $('#err').textContent='';
+  if(pinBuf.length===4){
+    try{ data = await load(pinBuf); store.set('pin',pinBuf); $('#pin').style.display='none'; $('#app').hidden=false; render(); }
+    catch(e){ $('#err').textContent = e.message==='bad_pin'?'Wrong PIN':'Connection problem'; $('#dots').classList.add('shake'); setTimeout(()=>{$('#dots').classList.remove('shake');pinBuf='';drawDots();},450); }
+  }
+}
+document.addEventListener('keydown',e=>{ if($('#pin').style.display!=='none'){ if(/^[0-9]$/.test(e.key)) press(e.key); if(e.key==='Backspace') press('⌫'); }});
+$('#q').oninput=render; $('#rf').onclick=refresh;
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && store.get('pin')) refresh(); });
+if(store.get('pin')){ $('#pin').style.display='none'; $('#app').hidden=false; refresh(); } else showPin();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
