@@ -53,6 +53,8 @@ header img{height:34px}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .nm{font-weight:700;font-size:15px;letter-spacing:.1px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .amt{font-weight:800;font-size:17px;color:var(--gold);text-align:right;white-space:nowrap}
+.amt .aed{display:block;font-size:11px;font-weight:600;color:var(--mut);margin-top:1px;letter-spacing:.2px}
+.aedt{font-size:10.5px;color:var(--mut);margin-top:3px;font-weight:600}
 .amt small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
 .meta{font-size:12.5px;color:var(--mut)}
 .meta b{color:var(--txt);font-weight:600}
@@ -96,6 +98,9 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 const FEED = 'https://script.google.com/macros/s/AKfycbxzrkpanri4fZax5EbZDgDj324CAkcneQMxe3Ylcl_zPMP-Covk_-vPUgUWB3EFsptOFg/exec';
 const CUR = ['USD','SAR','OMR','AED'];
 const TO_USD = {USD:1, SAR:1/3.75, OMR:2.6, AED:1/3.6725};
+const TO_AED = {USD:3.6725, SAR:3.6725/3.75, OMR:3.6725/0.3845, AED:1}; // pegged rates
+const aed = (v,c) => fmt0(v*TO_AED[c]);
+const fmt0 = n => n.toLocaleString('en-US',{maximumFractionDigits:0});
 let data = null, curF = null, sortK = 'value', pinBuf = '';
 const $ = s => document.querySelector(s);
 const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -118,7 +123,7 @@ function render(){
   const rows = data.rows.map(r=>({...r, d:days(r)}));
   // totals
   $('#tots').innerHTML = CUR.map(c=>{ const rs=rows.filter(r=>r.cur===c); const s=rs.reduce((a,r)=>a+r.due,0);
-    return `<div class="tot ${curF===c?'on':''}" data-c="${c}"><div class="c">${c}</div><div class="v">${fmt(s)}</div><div class="n">${rs.length} client${rs.length===1?'':'s'}</div></div>`}).join('');
+    return `<div class="tot ${curF===c?'on':''}" data-c="${c}"><div class="c">${c}</div><div class="v">${fmt(s)}</div><div class="n">${rs.length} client${rs.length===1?'':'s'}</div>${c!=='AED'?`<div class="aedt">≈ AED ${aed(s,c)}</div>`:''}</div>`}).join('');
   document.querySelectorAll('.tot').forEach(el=>el.onclick=()=>{curF = curF===el.dataset.c?null:el.dataset.c; render();});
   const sorts=[['value','Highest'],['days','Longest unpaid'],['name','A–Z']];
   $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'');
@@ -132,7 +137,7 @@ function render(){
     const cls = r.d===null?'r':r.d<=30?'g':r.d<=60?'o':'r';
     const badge = r.d===null?'Never paid':(r.d===0?'Today':r.d+' days');
     const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : 'No payment yet';
-    return `<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span></div>`;
+    return `<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}${r.cur!=='AED'?`<span class="aed">≈ AED ${aed(r.due,r.cur)}</span>`:''}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span></div>`;
   }).join('') : '<div class="empty">No matches</div>';
   const u = data.updated ? new Date(data.updated) : null;
   $('#upd').innerHTML = `Live from the tracker<br><b>${u?u.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</b>`;
