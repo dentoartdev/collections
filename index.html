@@ -11,10 +11,16 @@
 <meta name="apple-mobile-web-app-title" content="Collections">
 <meta name="robots" content="noindex,nofollow">
 <link rel="manifest" href="manifest.webmanifest">
+<script>try{if(localStorage.getItem("theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
 <style>
-:root{--bg:#0a0a0a;--card:#151515;--card2:#1c1c1c;--line:#262626;--gold:#dcbc6a;--gold2:#c9a227;--txt:#f4f1ea;--mut:#9a948a;--green:#3ecf8e;--orange:#f0a24a;--red:#ef5350}
+:root{--bg:#0a0a0a;--card:#151515;--card2:#1c1c1c;--line:#262626;--gold:#dcbc6a;--gold2:#c9a227;--txt:#f4f1ea;--mut:#9a948a;--green:#3ecf8e;--orange:#f0a24a;--red:#ef5350;--hero1:#141414;--hero2:#0d0d0d;--soft:rgba(255,255,255,.03);--glow:rgba(220,188,106,.06);--onGold:#111}
+[data-theme=light]{--bg:#f6f5f2;--card:#ffffff;--card2:#f0eee9;--line:#e6e2d8;--gold:#a8811f;--gold2:#c9a227;--txt:#141414;--mut:#7c776d;--green:#15995c;--orange:#c46a10;--red:#d32f2f;--hero1:#ffffff;--hero2:#faf7ee;--soft:#fbf9f4;--glow:rgba(201,162,39,.10);--onGold:#fff}
+[data-theme=light] .row,[data-theme=light] .hero,[data-theme=light] .tot{box-shadow:0 1px 2px rgba(0,0,0,.04)}
+[data-theme=light] .chip.on{background:#141414;color:#f2d98e;border-color:#141414}
+.th{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:15px;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;cursor:pointer}
+.hr{display:flex;align-items:center}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,Segoe UI,Roboto,Arial,sans-serif}
 body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
@@ -24,11 +30,11 @@ header img{height:34px}
 .upd{font-size:11px;color:var(--mut);text-align:right;line-height:1.4}
 .upd b{color:var(--gold);font-weight:600}
 .btn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:600}
-.hero{background:linear-gradient(135deg,#141414,#0d0d0d);border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;position:relative;overflow:hidden}
-.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(220,188,106,.06)}
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));border:1px solid var(--line);border-radius:22px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:var(--glow)}
 .hl{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--mut);font-weight:700}
 .tots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.tot{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:11px 12px;cursor:pointer;transition:.2s}
+.tot{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:11px 12px;cursor:pointer;transition:.2s}
 .tot.on{border-color:var(--gold2);background:rgba(220,188,106,.08)}
 .tot .c{font-size:11px;color:var(--mut);font-weight:700;letter-spacing:1px}
 .tot .v{font-size:clamp(14px,4.6vw,19px);font-weight:800;color:var(--gold);margin-top:3px;letter-spacing:-.3px;white-space:nowrap}
@@ -39,7 +45,7 @@ header img{height:34px}
 .search:focus{border-color:var(--gold2)}
 .sorts{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .chip{white-space:nowrap;background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
-.chip.on{background:var(--gold);color:#111;border-color:var(--gold)}
+.chip.on{background:var(--gold);color:var(--onGold);border-color:var(--gold)}
 .list{display:flex;flex-direction:column;gap:9px}
 .row{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;animation:in .35s ease both}
 @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -73,7 +79,7 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
   <div class="pad" id="pad"></div>
 </div>
 <div class="wrap" id="app" hidden>
-  <header><img src="logo.png" alt="Dento Art"><div class="upd" id="upd">Loading…</div></header>
+  <header><img src="logo.png" alt="Dento Art" id="lg"><div class="hr"><div class="upd" id="upd">Loading…</div><button class="th" id="th" aria-label="Theme">☀︎</button></div></header>
   <div class="hero">
     <div class="hl">Outstanding balances</div>
     <div class="tots" id="tots"></div>
@@ -151,6 +157,10 @@ async function press(k){
 }
 document.addEventListener('keydown',e=>{ if($('#pin').style.display!=='none'){ if(/^[0-9]$/.test(e.key)) press(e.key); if(e.key==='Backspace') press('⌫'); }});
 $('#q').oninput=render; $('#rf').onclick=refresh;
+function applyTheme(t){ if(t==='light') document.documentElement.dataset.theme='light'; else delete document.documentElement.dataset.theme;
+  $('#th').textContent = t==='light' ? '☾' : '☀︎'; document.querySelector('meta[name=theme-color]').content = t==='light' ? '#f6f5f2' : '#0a0a0a'; }
+applyTheme(store.get('theme')==='light'?'light':'dark');
+$('#th').onclick=()=>{ const t=document.documentElement.dataset.theme==='light'?'dark':'light'; store.set('theme',t); applyTheme(t); };
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && store.get('pin')) refresh(); });
 if(store.get('pin')){ $('#pin').style.display='none'; $('#app').hidden=false; refresh(); } else showPin();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
