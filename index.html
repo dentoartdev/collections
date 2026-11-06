@@ -71,6 +71,16 @@ header img{height:34px}
 .err{color:var(--red);font-size:13px;height:16px}
 .shake{animation:sh .4s}@keyframes sh{0%,100%{transform:none}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 @media(max-width:380px){.tots{gap:7px}.tot{padding:10px 9px}.amt{font-size:15.5px}}
+.grand{margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(100deg,#0d0d0d,#1d1a12);border:1px solid var(--gold2);border-radius:14px;padding:13px 15px}
+[data-theme=light] .grand{background:linear-gradient(100deg,#141414,#2a2414)}
+.grand .gl{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:#c8c0ad;font-weight:700;line-height:1.5}.grand .gl small{display:block;letter-spacing:.3px;text-transform:none;font-weight:500;color:#8f8878;font-size:10.5px}
+.grand .gv{font-size:clamp(18px,5.4vw,24px);font-weight:800;color:#e3c579;white-space:nowrap}.grand .gv small{font-size:12px;color:#b9a774;margin-right:4px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px}
+.tab{border:0;background:transparent;color:var(--mut);font-weight:700;font-size:13.5px;padding:10px;border-radius:10px;cursor:pointer}
+.tab.on{background:var(--gold);color:var(--onGold)}
+.grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
+.paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
+.rem{justify-self:end;font-size:12px;color:var(--mut);white-space:nowrap}.rem b{color:var(--gold);font-weight:800}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </style>
 </head>
@@ -87,8 +97,10 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
   <div class="hero">
     <div class="hl">Outstanding balances</div>
     <div class="tots" id="tots"></div>
+    <div class="grand" id="grand"></div>
   </div>
   <div class="strip"></div>
+  <div class="tabs" id="tabs"><button class="tab on" data-v="bal">Balances</button><button class="tab" data-v="pay">Recent payments</button></div>
   <div class="tools"><input class="search" id="q" placeholder="Search clinic or doctor" autocomplete="off"><button class="btn" id="rf">↻</button></div>
   <div class="sorts" id="sorts"></div>
   <div class="list" id="list"><div class="msg">Loading…</div></div>
@@ -101,7 +113,7 @@ const TO_USD = {USD:1, SAR:1/3.75, OMR:2.6, AED:1/3.6725};
 const TO_AED = {USD:3.6725, SAR:3.6725/3.75, OMR:3.6725/0.3845, AED:1}; // pegged rates
 const aed = (v,c) => fmt0(v*TO_AED[c]);
 const fmt0 = n => n.toLocaleString('en-US',{maximumFractionDigits:0});
-let data = null, curF = null, sortK = 'value', pinBuf = '';
+let data = null, curF = null, sortK = 'value', pinBuf = '', view = 'bal';
 const $ = s => document.querySelector(s);
 const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} }, del(k){ try{localStorage.removeItem(k)}catch(e){} } };
@@ -118,6 +130,16 @@ async function load(pin){
   return d;
 }
 function days(r){ let iso=r.lastPay; if(!iso){ const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(r.lastPayText||''); if(m) iso=m[3]+'-'+m[2]+'-'+m[1]; } if(!iso) return null; const a=new Date(iso+'T00:00:00'); return Math.max(0,Math.floor((Date.now()-a)/864e5)); }
+function renderPays(rows){
+  const q=$('#q').value.trim().toLowerCase();
+  const list = rows.filter(r=>r.d!==null&&(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q))).sort((a,b)=>a.d-b.d||b.lastAmt-a.lastAmt);
+  const grp = d => d<=7?'This week':d<=31?'This month':d<=92?'Last 3 months':'Earlier';
+  let html='', last='';
+  list.forEach((r,i)=>{ const g=grp(r.d); if(g!==last){ html+=`<div class="grp">${g}</div>`; last=g; }
+    const ago = r.d===0?'today':r.d===1?'yesterday':r.d+' days ago';
+    html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}</div><span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
+  $('#list').innerHTML = html || '<div class="empty">No payments</div>';
+}
 function render(){
   if(!data) return;
   const rows = data.rows.map(r=>({...r, d:days(r)}));
@@ -125,6 +147,11 @@ function render(){
   $('#tots').innerHTML = CUR.map(c=>{ const rs=rows.filter(r=>r.cur===c); const s=rs.reduce((a,r)=>a+r.due,0);
     return `<div class="tot ${curF===c?'on':''}" data-c="${c}"><div class="c">${c}</div><div class="v">${fmt(s)}</div><div class="n">${rs.length} client${rs.length===1?'':'s'}</div>${c!=='AED'?`<div class="aedt">≈ AED ${aed(s,c)}</div>`:''}</div>`}).join('');
   document.querySelectorAll('.tot').forEach(el=>el.onclick=()=>{curF = curF===el.dataset.c?null:el.dataset.c; render();});
+  const gAll = rows.reduce((a,r)=>a+r.due*TO_AED[r.cur],0);
+  $('#grand').innerHTML = `<div class="gl">Total outstanding<small>All currencies · ${rows.length} clients</small></div><div class="gv"><small>≈ AED</small>${fmt0(gAll)}</div>`;
+  document.querySelectorAll('.tab').forEach(t=>{ t.classList.toggle('on', t.dataset.v===view); t.onclick=()=>{ view=t.dataset.v; render(); }; });
+  $('#sorts').style.display = view==='bal' ? '' : 'none';
+  if(view==='pay'){ renderPays(rows); stamp(); return; }
   const sorts=[['value','Highest'],['days','Longest unpaid'],['name','A–Z']];
   $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'');
   document.querySelectorAll('.chip').forEach(el=>el.onclick=()=>{ if(el.dataset.x){curF=null}else{sortK=el.dataset.k} render(); });
@@ -139,6 +166,9 @@ function render(){
     const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : 'No payment yet';
     return `<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}${r.cur!=='AED'?`<span class="aed">≈ AED ${aed(r.due,r.cur)}</span>`:''}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span></div>`;
   }).join('') : '<div class="empty">No matches</div>';
+  stamp();
+}
+function stamp(){
   const u = data.updated ? new Date(data.updated) : null;
   $('#upd').innerHTML = `Live from the tracker<br><b>${u?u.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</b>`;
 }
