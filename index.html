@@ -129,7 +129,10 @@ async function load(pin){
   if(!d.ok) throw new Error(d.error||'error');
   return d;
 }
-function days(r){ let iso=r.lastPay; if(!iso){ const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(r.lastPayText||''); if(m) iso=m[3]+'-'+m[2]+'-'+m[1]; } if(!iso) return null; const a=new Date(iso+'T00:00:00'); return Math.max(0,Math.floor((Date.now()-a)/864e5)); }
+function dmy(t){ const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(t||''); return m? m[3]+'-'+m[2]+'-'+m[1] : null; }
+function since(iso){ return Math.max(0,Math.floor((Date.now()-new Date(iso+'T00:00:00'))/864e5)); }
+function invSince(r){ return /invoiced/i.test(r.lastPayText||'') ? dmy(r.lastPayText) : null; }
+function days(r){ if(invSince(r)) return null; let iso=r.lastPay||dmy(r.lastPayText); return iso? since(iso) : null; }
 function renderPays(rows){
   const q=$('#q').value.trim().toLowerCase();
   const list = rows.filter(r=>r.d!==null&&(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q))).sort((a,b)=>a.d-b.d||b.lastAmt-a.lastAmt);
@@ -158,12 +161,14 @@ function render(){
   const q=$('#q').value.trim().toLowerCase();
   let list = rows.filter(r=>(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q)));
   if(sortK==='value') list.sort((a,b)=>b.due*TO_USD[b.cur]-a.due*TO_USD[a.cur]);
-  if(sortK==='days') list.sort((a,b)=>(b.d===null?1e9:b.d)-(a.d===null?1e9:a.d));
+  if(sortK==='days'){ const k=r=> r.d!==null? r.d : (invSince(r)? since(invSince(r)) : 1e9); list.sort((a,b)=>k(b)-k(a)); }
   if(sortK==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
   $('#list').innerHTML = list.length ? list.map((r,i)=>{
-    const cls = r.d===null?'r':r.d<=30?'g':r.d<=60?'o':'r';
-    const badge = r.d===null?'Never paid':(r.d===0?'Today':r.d+' days');
-    const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : 'No payment yet';
+    const inv = invSince(r), invD = inv? since(inv) : null;
+    const dd = r.d!==null ? r.d : invD;
+    const cls = dd===null?'r':dd<=30?'g':dd<=60?'o':'r';
+    const badge = dd===null?'—':(dd===0?'Today':dd+' days');
+    const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : (inv? `No payment yet · invoiced since <b>${inv.split('-').reverse().join('/')}</b>` : 'No payment yet');
     return `<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}${r.cur!=='AED'?`<span class="aed">≈ AED ${aed(r.due,r.cur)}</span>`:''}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span></div>`;
   }).join('') : '<div class="empty">No matches</div>';
   stamp();
