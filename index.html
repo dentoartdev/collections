@@ -145,7 +145,7 @@ header img{height:34px}
 .pw{margin-top:8px}.pwk{border-top:1px solid var(--line);padding:8px 0;font-size:12.5px;line-height:1.5}.pwk b{font-weight:800}.pwk span{float:right;font-weight:800;color:var(--col)}
 .prl{margin:4px 0 0;padding-inline-start:18px;font-size:12.5px;line-height:1.6}
 .pnone{font-size:12.5px;color:var(--mut);padding:4px 0}
-.pchip{display:inline-flex;align-items:center;padding-left:11px;padding-right:11px}.pchip.busy{opacity:.45;pointer-events:none}
+.pchip{display:inline-flex;align-items:center;gap:6px;margin-left:auto;border-color:var(--gold)!important;color:var(--gold)}.pchip b{font-weight:800}.pchip.busy{opacity:.45;pointer-events:none}
 .mst{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:6px;padding:2px 6px}.mst.ok{background:rgba(62,207,142,.15);color:var(--green)}.mst.bad{background:rgba(239,83,80,.15);color:var(--red)}.mst.ref{background:rgba(240,162,74,.15);color:var(--orange)}
 .grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
 .paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
@@ -307,9 +307,9 @@ function render(){
   if(view==='mamo'){ if(mamoD) renderMamo(); loadMamo(false); stamp(); return; }
   if(view==='pay'){ renderPays(rows); stamp(); return; }
   ensurePdfLibs().catch(()=>{});
-  const sorts=[['value','Highest'],['days','Longest unpaid'],['name','A–Z']];
+  const sorts=[['value','Highest'],['days','Longest unpaid']]; if(sortK==='name') sortK='value';
   const PRN='<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 6V1.8h8V6"/><rect x="1.5" y="6" width="13" height="5.5" rx="1.2"/><path d="M4 9.5h8v4.7H4z" fill="var(--card)"/></svg>';
-  $('#sorts').innerHTML = `<span class="chip pchip" id="prn" title="Print A4" aria-label="Print">${PRN}</span>` + sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'');
+  $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'') + `<span class="chip pchip" id="prn" title="Print A4" aria-label="Print">${PRN}<b>Print</b></span>`;
   document.querySelectorAll('.chip[data-k],.chip[data-x]').forEach(el=>el.onclick=()=>{ if(el.dataset.x){curF=null}else{sortK=el.dataset.k} render(); });
   $('#prn').onclick=printBalances;
   const q=$('#q').value.trim().toLowerCase();
