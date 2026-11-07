@@ -103,7 +103,7 @@ header img{height:34px}
 .go{width:100%;margin-top:16px;border:0;border-radius:14px;background:var(--gold);color:var(--onGold);font:inherit;font-weight:800;font-size:15px;padding:14px;cursor:pointer}.go:disabled{opacity:.5}
 .res{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}.res .u{font-size:17px;font-weight:800;color:var(--gold);word-break:break-all}.res .acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}.res .acts button{border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:10px;padding:10px 0;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
 .err{color:var(--red);font-size:13px;margin-top:10px}
-.via{grid-column:1/-1;order:9;text-align:center;font-size:10.5px;color:var(--mut);opacity:.85;letter-spacing:.2px;margin-top:-2px}
+.via{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--mut);opacity:.85;margin-top:2px;letter-spacing:.2px}.via svg{width:11px;height:11px;flex:none}
 .mst{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:6px;padding:2px 6px}.mst.ok{background:rgba(62,207,142,.15);color:var(--green)}.mst.bad{background:rgba(239,83,80,.15);color:var(--red)}.mst.ref{background:rgba(240,162,74,.15);color:var(--orange)}
 .grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
 .paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
@@ -207,6 +207,12 @@ function dmy(t){ const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(t||''); return m? m[3]
 function since(iso){ return Math.max(0,Math.floor((Date.now()-new Date(iso+'T00:00:00'))/864e5)); }
 function invSince(r){ return /invoiced/i.test(r.lastPayText||'') ? dmy(r.lastPayText) : null; }
 function days(r){ if(invSince(r)) return null; let iso=r.lastPay||dmy(r.lastPayText); return iso? since(iso) : null; }
+const VIA_SVG={
+ mamo:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1.5" width="13" height="13" rx="4"/><path d="M4.5 11V6.2c0-.7.9-1 1.3-.4L8 9l2.2-3.2c.4-.6 1.3-.3 1.3.4V11"/></svg>',
+ cash:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="1" y="4" width="14" height="8" rx="1.5"/><circle cx="8" cy="8" r="1.8"/><path d="M3.5 6.5v3M12.5 6.5v3" stroke-linecap="round"/></svg>',
+ bank:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M1.5 6 8 2l6.5 4z"/><path d="M3.5 7v5M6.5 7v5M9.5 7v5M12.5 7v5M1.5 14h13"/></svg>',
+ cheque:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3.5" width="14" height="9" rx="1.5"/><path d="M3.5 10.2c1-1.4 1.6-1.4 2.2 0s1.2 1.4 2.2 0M10 7h3M10 9.5h3"/></svg>'};
+function viaIcon(v){ const t=v.toLowerCase(); return VIA_SVG[t.startsWith('mamo')?'mamo':t.startsWith('cash')?'cash':t.startsWith('bank')?'bank':t.startsWith('cheque')?'cheque':'']||''; }
 function renderPays(rows){
   const q=$('#q').value.trim().toLowerCase();
   const list = rows.filter(r=>r.d!==null&&(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q))).sort((a,b)=>a.d-b.d||b.lastAmt-a.lastAmt);
@@ -214,7 +220,7 @@ function renderPays(rows){
   let html='', last='';
   list.forEach((r,i)=>{ const g=grp(r.d); if(g!==last){ html+=`<div class="grp">${g}</div>`; last=g; }
     const ago = r.d===0?'today':r.d===1?'yesterday':r.d+' days ago';
-    html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}</div>${r.via?`<div class="via">${r.via}</div>`:''}<span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
+    html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}${r.via?`<span class="via">${viaIcon(r.via)}${r.via}</span>`:''}</div><span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
   $('#list').innerHTML = html || '<div class="empty">No payments</div>';
 }
 let mamoD=null, mamoAt=0, mamoBusy=false;
