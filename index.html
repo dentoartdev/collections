@@ -75,9 +75,19 @@ header img{height:34px}
 [data-theme=light] .grand{background:linear-gradient(100deg,#141414,#2a2414)}
 .grand .gl{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:#c8c0ad;font-weight:700;line-height:1.5}.grand .gl small{display:block;letter-spacing:.3px;text-transform:none;font-weight:500;color:#8f8878;font-size:10.5px}
 .grand .gv{font-size:clamp(18px,5.4vw,24px);font-weight:800;color:#e3c579;white-space:nowrap}.grand .gv small{font-size:12px;color:#b9a774;margin-right:4px}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px}
 .tab{border:0;background:transparent;color:var(--mut);font-weight:700;font-size:13.5px;padding:10px;border-radius:10px;cursor:pointer}
 .tab.on{background:var(--gold);color:var(--onGold)}
+.mhero{background:linear-gradient(145deg,#0f2a24,#0b1a17);border:1px solid #1d4a3f;border-radius:18px;padding:16px;color:#eafaf4;margin-bottom:10px}
+[data-theme=light] .mhero{background:linear-gradient(145deg,#e9f8f2,#f6fcf9);border-color:#bfe8d6;color:#0c3b2e}
+.mhero .ml1{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;opacity:.75;font-weight:800}
+.mhero .mv1{font-size:clamp(26px,8vw,34px);font-weight:800;margin:4px 0 2px;color:var(--green)}.mhero .mv1 small{font-size:14px;opacity:.8;margin-right:5px}
+.mhero .ms{font-size:12px;opacity:.8}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.mbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px}.mbox .k{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);font-weight:800}.mbox .v{font-size:17px;font-weight:800;margin-top:3px;white-space:nowrap}.mbox .v small{font-size:11px;color:var(--mut);margin-right:3px}
+.payout{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:5px;font-size:13px}
+.payout b{font-weight:800}.payout .pd{color:var(--mut);font-size:11.5px;margin-left:6px}.payout .pa{color:var(--green);font-weight:800;white-space:nowrap}
+.mst{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:6px;padding:2px 6px}.mst.ok{background:rgba(62,207,142,.15);color:var(--green)}.mst.bad{background:rgba(239,83,80,.15);color:var(--red)}.mst.ref{background:rgba(240,162,74,.15);color:var(--orange)}
 .grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
 .paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
 .rem{justify-self:end;font-size:12px;color:var(--mut);white-space:nowrap}.rem b{color:var(--gold);font-weight:800}
@@ -126,7 +136,7 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
     <div class="grand" id="grand"></div>
   </div>
   <div class="strip"></div>
-  <div class="tabs" id="tabs"><button class="tab on" data-v="bal">Balances</button><button class="tab" data-v="pay">Recent payments</button></div>
+  <div class="tabs" id="tabs"><button class="tab on" data-v="bal">Balances</button><button class="tab" data-v="pay">Payments</button><button class="tab" data-v="mamo">Mamo</button></div>
   <div class="tools"><input class="search" id="q" placeholder="Search clinic or doctor" autocomplete="off"><button class="btn" id="rf">↻</button></div>
   <div class="sorts" id="sorts"></div>
   <div class="list" id="list"><div class="msg">Loading…</div></div>
@@ -169,6 +179,23 @@ function renderPays(rows){
     html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}</div><span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
   $('#list').innerHTML = html || '<div class="empty">No payments</div>';
 }
+let mamoD=null, mamoAt=0, mamoBusy=false;
+function dshort(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); }
+function inDays(iso){ const t=new Date(); t.setHours(0,0,0,0); const n=Math.round((new Date(iso+'T00:00:00')-t)/864e5); return n<=0?'today':n===1?'tomorrow':'in '+n+' days'; }
+async function loadMamo(force){ if(mamoBusy) return; if(!force && mamoD && Date.now()-mamoAt<60000) return renderMamo();
+  mamoBusy=true; if(!mamoD) $('#list').innerHTML='<div class="msg">Loading Mamo…</div>';
+  try{ const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mamo=1'); mamoD=d; mamoAt=Date.now(); }catch(e){ mamoD=mamoD||{ok:false,error:'network'}; }
+  mamoBusy=false; if(view==='mamo') renderMamo(); }
+function renderMamo(){ const d=mamoD; if(!d) return;
+  if(!d.ok){ $('#list').innerHTML=`<div class="msg">Mamo not connected yet (${d.error||'error'})</div>`; return; }
+  const who=x=>{ const t=(x.what||'').split(' - ')[0].trim(); return (t||x.name||'—').replace(/</g,'&lt;'); };
+  const st=x=> x.status==='captured' ? (x.refund>0?'<span class="mst ref">Refunded</span>':'<span class="mst ok">Paid</span>') : `<span class="mst bad">${x.status}</span>`;
+  let h=`<div class="mhero"><div class="ml1">Waiting at Mamo → your bank</div><div class="mv1"><small>AED</small>${fmt(d.pending)}</div><div class="ms">${d.upcoming.length?`${d.upcoming.length} transfer${d.upcoming.length>1?'s':''} coming · next ${dshort(d.upcoming[0].date)} (${inDays(d.upcoming[0].date)})`:'Nothing pending — all settled'} · live ${d.at}</div></div>`;
+  h+=`<div class="mgrid"><div class="mbox"><div class="k">This month</div><div class="v"><small>AED</small>${fmt(d.month.gross)}</div></div><div class="mbox"><div class="k">Payments this month</div><div class="v">${d.month.count}</div></div></div>`;
+  if(d.upcoming.length){ h+='<div class="grp">Coming to your bank</div>'+d.upcoming.map(u=>`<div class="payout"><span><b>${dshort(u.date)}</b><span class="pd">${inDays(u.date)}</span></span><span class="pa">AED ${fmt(u.amount)}</span></div>`).join(''); }
+  h+='<div class="grp">Latest Mamo payments</div>'+d.recent.map((x,i)=>`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${who(x)}</div><div class="paid"><small>${x.cur}</small>${x.status==='captured'?'+':''}${fmt(x.amount)}</div><div class="meta"><b>${x.at.slice(8,10)}/${x.at.slice(5,7)}/${x.at.slice(0,4)}</b> ${x.at.slice(11)} · ${x.method||''}${x.status==='captured'&&x.settle?` · bank ${x.settle.slice(8,10)}/${x.settle.slice(5,7)}`:''}</div>${st(x)}</div>`).join('');
+  $('#list').innerHTML=h; }
+setInterval(()=>{ if(view==='mamo' && !document.hidden) loadMamo(true); },60000);
 function render(){
   if(!data) return;
   const rows = data.rows.map(r=>({...r, d:days(r)}));
@@ -180,6 +207,8 @@ function render(){
   $('#grand').innerHTML = `<div class="gl">Total outstanding<small>All currencies · ${rows.length} clients</small></div><div class="gv"><small>≈ AED</small>${fmt0(gAll)}</div>`;
   document.querySelectorAll('.tab').forEach(t=>{ t.classList.toggle('on', t.dataset.v===view); t.onclick=()=>{ view=t.dataset.v; render(); }; });
   $('#sorts').style.display = view==='bal' ? '' : 'none';
+  document.querySelector('.tools').style.display = view==='mamo' ? 'none' : '';
+  if(view==='mamo'){ if(mamoD) renderMamo(); loadMamo(false); stamp(); return; }
   if(view==='pay'){ renderPays(rows); stamp(); return; }
   const sorts=[['value','Highest'],['days','Longest unpaid'],['name','A–Z']];
   $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'');
