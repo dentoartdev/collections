@@ -182,6 +182,7 @@ header img{height:34px}
 .go.wa2{background:#25d366;color:#05351b}
 .doc.inv.hid{display:none}.morei{width:100%;border:1px dashed var(--line);background:transparent;color:var(--gold);border-radius:12px;padding:9px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
 .two{display:grid;grid-template-columns:1.25fr 1fr;gap:6px;margin-bottom:12px}.two .doc.wa{margin-bottom:0}.doc.cl{border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:14px;font-weight:800;font-size:14px;padding:11px 6px;text-align:center}.doc.cl small{display:block;font-size:10.5px;font-weight:700;opacity:.75;margin-top:1px}
+.pdtg{margin-top:8px}.imo.pmo{background:var(--card);color:var(--mut);border:1px solid var(--line)}
 .docs .none{font-size:12px;color:var(--mut)}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </style>
@@ -339,13 +340,16 @@ const ST={ '3m':'Statement · 3 months','ytd':'Statement · this year','full':'S
 function docInfo(n){ const p=n.split('__'); if(p[1]&&/^statement-(3m|ytd|full)\.pdf$/.test(p[1])){ const k=p[1].slice(10,-4); return {k:'s'+k, o:({'3m':0,'ytd':1,'full':2})[k], label:ST[k], st:true}; }
   if(p[1]==='inv'&&p[2]){ const no=p[2].replace(/\.pdf$/,''), ym=(p[3]||'').replace(/\.pdf$/,''), bal=p[4]?parseFloat(p[4]):null;
     const mo=/^\d{4}-\d{2}$/.test(ym)? new Date(ym+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : '';
-    return {k:'i', o:10, ym:ym, label:'Invoice '+no, mo:mo, bal:bal, st:false}; } return null; }
+    return {k:'i', o:10, ym:ym, label:'Invoice '+no, mo:mo, bal:bal, st:false}; }
+  if(p[1]==='paid'&&p[2]){ const no=p[2], ym=p[3]||'', tot=parseFloat((p[4]||'0').replace(/\.pdf$/,'')); const mo=/^\d{4}-\d{2}$/.test(ym)? new Date(ym+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : '';
+    return {k:'p', o:20, ym:ym, label:'Invoice '+no, mo:mo, bal:tot, st:false}; }
+  return null; }
 function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.label);
   if(!ds.length) return `<div class="docs"><span class="none">Documents not ready yet</span></div>`;
-  const st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st).sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')||a.label.localeCompare(b.label));
+  const paidI=ds.filter(d=>d.k==='p').sort((a,b)=>(b.ym||'').localeCompare(a.ym||'')), st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st&&d.k==='i').sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')||a.label.localeCompare(b.label));
   const SL={'s3m':'3 Months','sytd':'This Year','sfull':'Full'}, up=ds[0].updated?` <span>· updated ${ds[0].updated}</span>`:'';
   return `<div class="docs"><div class="two"><button class="doc wa" data-send="${encodeURIComponent(r.name)}">Send on WhatsApp<small>message + statement + invoices</small></button><button class="doc cl" data-cl="${encodeURIComponent(r.name)}">Client link<small>their own account page</small></button></div><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
-    (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map((d,ix)=>`<button class="doc inv${ix>=5&&!invAll.has(r.name)?' hid':''}" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>#${d.label.replace(/^Invoice\s+/,'').split('-').pop()}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>↓</i></span></button>`).join('')}${inv.length>5?`<button class="morei" data-more="${encodeURIComponent(r.name)}">${invAll.has(r.name)?'Show less':`View all ${inv.length} invoices`}</button>`:''}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
+    (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map((d,ix)=>`<button class="doc inv${ix>=5&&!invAll.has(r.name)?' hid':''}" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>#${d.label.replace(/^Invoice\s+/,'').split('-').pop()}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>↓</i></span></button>`).join('')}${inv.length>5?`<button class="morei" data-more="${encodeURIComponent(r.name)}">${invAll.has(r.name)?'Show less':`View all ${inv.length} invoices`}</button>`:''}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+(paidI.length?`<button class="morei pdtg" data-paid="${encodeURIComponent(r.name)}">${paidShow.has(r.name)?'Hide':'Show'} paid invoices · ${paidI.length}</button><div class="invs pdl" style="${paidShow.has(r.name)?'':'display:none'}">${paidI.map(d=>`<button class="doc inv" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo pmo">${d.mo}</b>`:''}<span>#${d.label.replace(/^Invoice\s+/,'').split('-').pop()}</span></span><span class="ir"><em>${r.cur} ${fmt(d.bal)}</em><i style="color:var(--green)">✓</i><i>↓</i></span></button>`).join('')}</div>`:'')+`</div>`; }
 const fileCache={};
 function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' ')+(i.mo?' ('+i.mo+')':''):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
 async function deliver(btn, f){ const file=fileCache[f];
@@ -525,7 +529,7 @@ function renderOverview(){
   const ap=$('#addp'); if(ap) ap.onclick=pmOpen;
   if(!mamoD || Date.now()-mamoAt>60000) jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mamo=1').then(d=>{ mamoD=d; mamoAt=Date.now(); if(view==='ov' && d.ok){ const t=$('#ovmamo'),v=$('#ovmamov'); if(t) t.textContent=d.upcoming.length?'next '+dshort(d.upcoming[0].date)+' · '+inDays(d.upcoming[0].date):'nothing pending'; if(v) v.textContent='AED '+fmt0(d.pending); } }).catch(()=>{});
 }
-const tdOpen={}; const invAll=new Set();
+const tdOpen={}; const invAll=new Set(); const paidShow=new Set();
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function dayLabel(iso){ const n=dayDiff(iso), d=new Date(iso+'T00:00:00'), base=`${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; return n===0?'Today · '+base:n===1?'Tomorrow · '+base:base; }
 const tdExp={};
@@ -662,6 +666,8 @@ async function clOpen(name){ $('#clt').textContent=name; $('#clb').innerHTML='<d
 $('#clx').onclick=()=>$('#cls').classList.remove('on');
 $('#cls').onclick=e=>{ if(e.target.id==='cls') $('#cls').classList.remove('on'); };
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-cl]'); if(!b) return; e.stopPropagation(); clOpen(decodeURIComponent(b.dataset.cl)); },true);
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-paid]'); if(!b) return; e.stopPropagation(); const n=decodeURIComponent(b.dataset.paid), on=!paidShow.has(n); if(on) paidShow.add(n); else paidShow.delete(n);
+  const l=b.nextElementSibling; if(l) l.style.display=on?'':'none'; b.textContent=(on?'Hide':'Show')+' paid invoices · '+l.querySelectorAll('.doc').length; },true);
 </script>
 </body>
 </html>
