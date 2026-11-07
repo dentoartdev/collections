@@ -91,6 +91,12 @@ header img{height:34px}
 .mb{height:6px;background:var(--card2);border-radius:6px;overflow:hidden}.mb i{display:block;height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:6px}
 .mrow.cr .mv{color:var(--green)}
 .dsum{font-size:11.5px;color:var(--mut);margin-top:5px}.dsum b{color:var(--txt)}
+.docs{margin-top:10px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.docs .dl{width:100%;font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--mut);font-weight:800}
+.doc{border:1px solid var(--gold);background:transparent;color:var(--gold);font:inherit;font-size:12.5px;font-weight:700;border-radius:999px;padding:7px 12px;cursor:pointer}
+.doc.st{background:var(--gold);color:var(--onGold)}
+.doc.busy{opacity:.55;pointer-events:none}.doc.ready{background:var(--green);border-color:var(--green);color:#fff}
+.docs .none{font-size:12px;color:var(--mut)}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </style>
 </head>
@@ -180,12 +186,32 @@ function render(){
     const badge = dd===null?'—':(dd===0?'Today':dd+' days');
     const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : (inv? `No payment yet · invoiced since <b>${inv.split('-').reverse().join('/')}</b>` : 'No payment yet');
     const ms=(r.months||[]).filter(m=>m[1]>0), mx=Math.max(1,...ms.map(m=>m[1])), cr=(r.months||[]).filter(m=>m[1]<0);
-    const det=`<div class="det">${ms.map(m=>`<div class="mrow"><span class="ml">${m[0]}</span><span class="mb"><i style="width:${Math.max(4,Math.round(m[1]/mx*100))}%"></i></span><span class="mv">${fmt(m[1])}</span></div>`).join('')}${cr.map(m=>`<div class="mrow cr"><span class="ml">Credit</span><span class="mb"></span><span class="mv">${fmt(m[1])}</span></div>`).join('')}<div class="dsum">${ms.length} month${ms.length===1?'':'s'} unpaid${ms.length?` · oldest <b>${ms[ms.length-1][0]}</b>`:''}</div></div>`;
+    const det=`<div class="det">${ms.map(m=>`<div class="mrow"><span class="ml">${m[0]}</span><span class="mb"><i style="width:${Math.max(4,Math.round(m[1]/mx*100))}%"></i></span><span class="mv">${fmt(m[1])}</span></div>`).join('')}${cr.map(m=>`<div class="mrow cr"><span class="ml">Credit</span><span class="mb"></span><span class="mv">${fmt(m[1])}</span></div>`).join('')}<div class="dsum">${ms.length} month${ms.length===1?'':'s'} unpaid${ms.length?` · oldest <b>${ms[ms.length-1][0]}</b>`:''}</div>${docsHtml(r)}</div>`;
     return `<div class="row ${openSet.has(r.name)?'open':''}" data-n="${encodeURIComponent(r.name)}" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm"><span class="chev">›</span>${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}${r.cur!=='AED'?`<span class="aed">≈ AED ${aed(r.due,r.cur)}</span>`:''}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span>${det}</div>`;
   }).join('') : '<div class="empty">No matches</div>';
   document.querySelectorAll('#list .row[data-n]').forEach(el=>el.onclick=()=>{ const n=decodeURIComponent(el.dataset.n); if(openSet.has(n)) openSet.delete(n); else openSet.add(n); el.classList.toggle('open'); });
   stamp();
 }
+const ST={ '3m':'Statement · 3 months','ytd':'Statement · this year','full':'Statement · full' };
+function docInfo(n){ const p=n.split('__'); if(p[1]&&/^statement-(3m|ytd|full)\.pdf$/.test(p[1])){ const k=p[1].slice(10,-4); return {k:'s'+k, o:({'3m':0,'ytd':1,'full':2})[k], label:ST[k], st:true}; }
+  if(p[1]==='inv'&&p[2]) return {k:'i', o:10, label:'Invoice '+p[2].replace(/\.pdf$/,''), st:false}; return null; }
+function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.label).sort((a,b)=>a.o-b.o||a.label.localeCompare(b.label));
+  if(!ds.length) return `<div class="docs"><span class="none">Documents not ready yet</span></div>`;
+  const up=ds[0].updated?` · updated ${ds[0].updated}`:'';
+  return `<div class="docs"><span class="dl">Documents${up}</span>${ds.map(d=>`<button class="doc ${d.st?'st':''}" data-f="${encodeURIComponent(d.name)}">${d.label}</button>`).join('')}</div>`; }
+const fileCache={};
+function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' '):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
+async function deliver(btn, f){ const file=fileCache[f];
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); btn.classList.remove('ready'); return; }catch(e){ if(e.name==='AbortError'){btn.classList.remove('ready');return;} btn.classList.add('ready'); btn.dataset.lbl=btn.dataset.lbl||btn.textContent; btn.textContent='Tap to open ↗'; return; } }
+  const u=URL.createObjectURL(file), a=document.createElement('a'); a.href=u; a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); btn.classList.remove('ready'); }
+async function openDoc(btn){ const f=decodeURIComponent(btn.dataset.f);
+  if(fileCache[f]){ await deliver(btn,f); if(btn.dataset.lbl&&!btn.classList.contains('ready')) btn.textContent=btn.dataset.lbl; return; }
+  const lbl=btn.textContent; btn.dataset.lbl=lbl; btn.classList.add('busy'); btn.textContent='Loading…';
+  try{ const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&file='+encodeURIComponent(f)); if(!d.ok) throw new Error(d.error);
+    const bin=atob(d.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    fileCache[f]=new File([u8],niceName(f),{type:'application/pdf'}); btn.classList.remove('busy'); btn.textContent=lbl; await deliver(btn,f);
+  }catch(e){ btn.classList.remove('busy'); btn.textContent='Failed — tap again'; setTimeout(()=>btn.textContent=lbl,2500); } }
+document.addEventListener('click',e=>{ const b=e.target.closest('.doc'); if(!b) return; e.stopPropagation(); openDoc(b); },true);
 function stamp(){
   const u = data.updated ? new Date(data.updated) : null;
   $('#upd').innerHTML = `Live from the tracker<br><b>${u?u.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</b>`;
