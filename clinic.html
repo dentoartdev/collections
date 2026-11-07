@@ -22,7 +22,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .hl{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--mut);font-weight:800;margin-top:12px}
 .bal{font-size:clamp(30px,9vw,40px);font-weight:800;color:var(--gold);margin:4px 0 2px;direction:ltr;text-align:start;unicode-bidi:plaintext}
 .bal small{font-size:15px;opacity:.85;margin-inline-end:6px}
-.lp{font-size:12.5px;color:var(--mut)}.lp b{color:var(--txt)}.lp .late{color:var(--red);font-weight:800}
+.lp{font-size:12.5px;color:var(--mut)}.lp b{color:var(--txt)}.lp .late{color:var(--red);font-weight:800}.lp .ago{color:var(--mut);font-weight:700}
 .pay{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;border:0;border-radius:14px;background:linear-gradient(90deg,var(--gold2),#e3c579);color:var(--onGold);font:inherit;font-weight:800;font-size:16px;padding:14px;cursor:pointer;text-decoration:none}
 .pay small{display:block;font-size:11px;font-weight:700;opacity:.75}
 .sec{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px}
@@ -90,7 +90,7 @@ function render(){
   const inv=docs.filter(d=>d.k==='i').sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')), st=k=>docs.find(d=>d.k===k);
   const ms=(c.months||[]).filter(m=>m[1]>0), mx=Math.max(1,...ms.map(m=>m[1]));
   const ld=c.lastPay?Math.floor((Date.now()-new Date(c.lastPay+'T00:00:00'))/864e5):null;
-  const lp=/invoiced/i.test(c.lastPayText||'')||!c.lastPay?t('never'):`${t('last')}: <b>${esc(c.lastPayText)}</b>${ld!=null&&ld>30?` <span class="late">· ${lang==='ar'?'صارلها '+ld+' يوم':ld+' days ago'}</span>`:''}`;
+  const lp=/invoiced/i.test(c.lastPayText||'')||!c.lastPay?t('never'):`${t('last')}: <b>${esc(c.lastPayText)}</b>${ld!=null?` <span class="${ld>30?'late':'ago'}">· ${ld===0?(lang==='ar'?'اليوم':'today'):(lang==='ar'?'صارلها '+ld+' يوم':ld+(ld===1?' day ago':' days ago'))}</span>`:''}`;
   let h=`<div class="hero"><div class="cn">${esc(c.name)}</div><div class="hl">${t('bal')}</div><div class="bal"><small>${c.cur}</small>${fmt(c.due)}</div><div class="lp">${lp}</div>
     ${c.due>0.004?(c.pay?`<a class="pay" href="${esc(c.pay)}" target="_blank" rel="noopener"><span>${t('pay')}<small>${t('paySub')}</small></span></a>`:''):`<div class="lp paid" style="margin-top:10px">${t('zero')}</div>`}</div>`;
   if(ms.length) h+=`<div class="sec"><div class="sh">${t('months')}</div>${ms.map(m=>`<div class="mrow"><span class="l">${monthLabel(m[0])}</span><span class="bar"><i style="width:${Math.max(4,Math.round(m[1]/mx*100))}%"></i></span><span class="v">${c.cur} ${fmt(m[1])}</span></div>`).join('')}</div>`;
