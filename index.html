@@ -187,6 +187,7 @@ async function loadMamo(force){ if(mamoBusy) return; if(!force && mamoD && Date.
   mamoBusy=true; if(!mamoD) $('#list').innerHTML='<div class="msg">Loading Mamo…</div>';
   try{ const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mamo=1'); mamoD=d; mamoAt=Date.now(); }catch(e){ mamoD=mamoD||{ok:false,error:'network'}; }
   mamoBusy=false; if(view==='mamo') renderMamo(); }
+function agoTxt(at){ const t=new Date(); t.setHours(0,0,0,0); const d=new Date(at.slice(0,10)+'T00:00:00'); const n=Math.round((t-d)/864e5); return n<=0?'today':n===1?'1 day ago':n+' days ago'; }
 function renderMamo(){ const d=mamoD; if(!d) return;
   if(!d.ok){ $('#list').innerHTML=`<div class="msg">Mamo not connected yet (${d.error||'error'})</div>`; return; }
   const who=x=>{ let t=(x.what||'').split(' - ')[0].split(' | ')[0].trim(); if(/^untitled/i.test(t)) t=''; return (t||x.name||'—').replace(/</g,'&lt;'); };
@@ -194,7 +195,7 @@ function renderMamo(){ const d=mamoD; if(!d) return;
   let h=`<div class="mhero"><div class="ml1">Waiting at Mamo → your bank</div><div class="mv1"><small>AED</small>${fmt(d.pending)}</div><div class="ms">${d.upcoming.length?`${d.upcoming.length} transfer${d.upcoming.length>1?'s':''} coming · next ${dshort(d.upcoming[0].date)} (${inDays(d.upcoming[0].date)})`:'Nothing pending — all settled'} · live ${d.at}</div></div>`;
   h+=`<div class="mgrid"><div class="mbox"><div class="k">This month · net AED</div><div class="v"><small>AED</small>${fmt(d.month.gross)}</div></div><div class="mbox"><div class="k">Payments this month</div><div class="v">${d.month.count}</div></div></div>`;
   if(d.upcoming.length){ h+='<div class="grp">Coming to your bank</div>'+d.upcoming.map(u=>`<div class="payout"><span><b>${dshort(u.date)}</b><span class="pd">${inDays(u.date)}</span></span><span class="pa">AED ${fmt(u.amount)}</span></div>`).join(''); }
-  h+='<div class="grp">Latest Mamo payments</div>'+d.recent.filter(x=>x.status==='captured').map((x,i)=>`<div class="row mp" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${who(x)}</div><div class="paid"><small>${x.cur}</small>${x.status==='captured'?'+':''}${fmt(x.amount)}</div><div class="meta"><b>${x.at.slice(8,10)}/${x.at.slice(5,7)}/${x.at.slice(0,4)}</b> ${x.at.slice(11)} · ${x.method||''}${x.status==='captured'&&x.settle?` · bank ${x.settle.slice(8,10)}/${x.settle.slice(5,7)}`:''}</div></div>`).join('');
+  h+='<div class="grp">Latest Mamo payments</div>'+d.recent.filter(x=>x.status==='captured').map((x,i)=>`<div class="row mp" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${who(x)}</div><div class="paid"><small>${x.cur}</small>${x.status==='captured'?'+':''}${fmt(x.amount)}</div><div class="meta"><b>${x.at.slice(8,10)}/${x.at.slice(5,7)}/${x.at.slice(0,4)}</b> ${x.at.slice(11)} · ${x.method||''} · <b>${agoTxt(x.at)}</b></div></div>`).join('');
   $('#list').innerHTML=h; }
 setInterval(()=>{ if(view==='mamo' && !document.hidden) loadMamo(true); },60000);
 function render(){
