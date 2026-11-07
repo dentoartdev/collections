@@ -181,6 +181,7 @@ header img{height:34px}
 .ta{min-height:150px;resize:vertical;line-height:1.5;font-size:15px}
 .go.wa2{background:#25d366;color:#05351b}
 .doc.inv.hid{display:none}.morei{width:100%;border:1px dashed var(--line);background:transparent;color:var(--gold);border-radius:12px;padding:9px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:6px;margin-bottom:12px}.two .doc.wa{margin-bottom:0}.doc.cl{border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:14px;font-weight:800;font-size:14px;padding:11px 6px;text-align:center}.doc.cl small{display:block;font-size:10.5px;font-weight:700;opacity:.75;margin-top:1px}
 .docs .none{font-size:12px;color:var(--mut)}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </style>
@@ -221,6 +222,10 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 <div class="fl">Doctor / clinic (optional)</div><input class="fi" id="pmn" list="mkl" placeholder="Choose a name" autocomplete="off">
 <div class="fl">Date</div><input class="fi" id="pmd" type="date">
 <button class="go" id="pmgo">Add task</button><div id="pmr"></div>
+</div></div>
+<div class="sheet" id="cls"><div class="sh">
+<button class="x" id="clx">✕</button><h3 id="clt">Client link</h3>
+<div id="clb"><div class="hint">Creating the private link…</div></div>
 </div></div>
 <div class="sheet" id="mk"><div class="sh">
 <button class="x" id="mkx">✕</button><h3>Create Mamo link</h3>
@@ -339,7 +344,7 @@ function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{
   if(!ds.length) return `<div class="docs"><span class="none">Documents not ready yet</span></div>`;
   const st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st).sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')||a.label.localeCompare(b.label));
   const SL={'s3m':'3 Months','sytd':'This Year','sfull':'Full'}, up=ds[0].updated?` <span>· updated ${ds[0].updated}</span>`:'';
-  return `<div class="docs"><button class="doc wa" data-send="${encodeURIComponent(r.name)}">Send on WhatsApp<small>message + statement + invoices</small></button><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
+  return `<div class="docs"><div class="two"><button class="doc wa" data-send="${encodeURIComponent(r.name)}">Send on WhatsApp<small>message + statement + invoices</small></button><button class="doc cl" data-cl="${encodeURIComponent(r.name)}">Client link<small>their own account page</small></button></div><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
     (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map((d,ix)=>`<button class="doc inv${ix>=5&&!invAll.has(r.name)?' hid':''}" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>#${d.label.replace(/^Invoice\s+/,'').split('-').pop()}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>↓</i></span></button>`).join('')}${inv.length>5?`<button class="morei" data-more="${encodeURIComponent(r.name)}">${invAll.has(r.name)?'Show less':`View all ${inv.length} invoices`}</button>`:''}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
 const fileCache={};
 function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' ')+(i.mo?' ('+i.mo+')':''):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
@@ -643,6 +648,20 @@ async function printBalances(){
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-more]'); if(!b) return; e.stopPropagation(); const n=decodeURIComponent(b.dataset.more), on=!invAll.has(n); if(on) invAll.add(n); else invAll.delete(n);
   const box=b.parentElement; box.querySelectorAll('.doc.inv').forEach((x,i)=>{ if(i>=5) x.classList.toggle('hid',!on); }); b.textContent=on?'Show less':`View all ${box.querySelectorAll('.doc.inv').length} invoices`; },true);
+
+async function clOpen(name){ $('#clt').textContent=name; $('#clb').innerHTML='<div class="hint">Preparing the private link…</div>'; $('#cls').classList.add('on');
+  try{ const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mkclient='+encodeURIComponent(name)); if(!d.ok) throw new Error(d.error);
+    const url=new URL('clinic.html?k='+d.token,location.href).href;
+    const msg=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\nهذا رابط حسابكم الخاص — تكدرون تشوفون الرصيد والفواتير وكشف الحساب بأي وقت، وتدفعون أونلاين من نفس الصفحة:\n${url}\n\n(الرابط خاص بعيادتكم فقط)`;
+    $('#clb').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">Private page for this clinic</div><div class="u" style="font-size:13px">${url}</div>${d.pay?`<div class="hint">Pay-now link on the page: <b>${d.pay}</b></div>`:'<div class="hint">No pay-now link (currency not supported by Mamo)</div>'}
+      <div class="acts"><button id="clcp">Copy</button><button id="clsh">Send</button><button id="clop">Open</button></div></div>`;
+    $('#clcp').onclick=async()=>{ try{ await navigator.clipboard.writeText(url); $('#clcp').textContent='Copied ✓'; }catch(e){ prompt('Copy',url); } };
+    $('#clsh').onclick=()=>{ if(navigator.share) navigator.share({text:msg}).catch(()=>{}); else location.href='https://wa.me/?text='+encodeURIComponent(msg); };
+    $('#clop').onclick=()=>window.open(url,'_blank');
+  }catch(e){ $('#clb').innerHTML=`<div class="err">Could not create the link (${String(e.message||e).replace(/</g,'&lt;')})</div>`; } }
+$('#clx').onclick=()=>$('#cls').classList.remove('on');
+$('#cls').onclick=e=>{ if(e.target.id==='cls') $('#cls').classList.remove('on'); };
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-cl]'); if(!b) return; e.stopPropagation(); clOpen(decodeURIComponent(b.dataset.cl)); },true);
 </script>
 </body>
 </html>
