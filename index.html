@@ -132,6 +132,10 @@ header img{height:34px}
 .doc.inv em{font-style:normal;font-size:12.5px;font-weight:800;color:var(--txt)}
 .doc.inv .il span{font-size:12.5px;color:var(--mut);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .doc.busy{opacity:.55;pointer-events:none}.doc.ready{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important}
+.doc.wa{display:block;width:100%;border:0;border-radius:14px;background:#25d366;color:#05351b;font-weight:800;font-size:14.5px;padding:11px;margin-bottom:12px;text-align:center}.doc.wa small{display:block;font-size:10.5px;font-weight:700;opacity:.75;margin-top:1px}
+.ck{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:5px;font-size:13px;font-weight:700;cursor:pointer}.ck input{width:18px;height:18px;accent-color:#25d366}.ck em{margin-left:auto;font-style:normal;color:var(--mut);font-size:12px}
+.ta{min-height:150px;resize:vertical;line-height:1.5;font-size:15px}
+.go.wa2{background:#25d366;color:#05351b}
 .docs .none{font-size:12px;color:var(--mut)}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </style>
@@ -158,6 +162,14 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
   <div class="list" id="list"><div class="msg">Loading…</div></div>
   <footer>Dento Art Dental Lab · Collections</footer>
 </div>
+<div class="sheet" id="sd"><div class="sh">
+<button class="x" id="sdx">✕</button><h3 id="sdt">Send on WhatsApp</h3>
+<div class="fl">Statement</div><div class="seg" id="sds"><button data-w="3m" class="on">3 Months</button><button data-w="ytd">This Year</button><button data-w="full">Full</button></div>
+<div class="fl" id="sdil">Invoices</div><div id="sdi"></div>
+<label class="ck"><input type="checkbox" id="sdl"> Add Mamo payment link (full balance)</label>
+<div class="fl">Message</div><textarea class="fi ta" id="sdm" dir="auto"></textarea>
+<button class="go wa2" id="sdgo">Prepare files</button><div class="hint" id="sdh">Your phone's share menu opens → choose WhatsApp → choose the doctor.</div><div id="sdr"></div>
+</div></div>
 <div class="sheet" id="mk"><div class="sh">
 <button class="x" id="mkx">✕</button><h3>Create Mamo link</h3>
 <div class="fl">Doctor / clinic</div><input class="fi" id="mkn" list="mkl" placeholder="Choose or type a name" autocomplete="off"><datalist id="mkl"></datalist>
@@ -265,7 +277,7 @@ function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{
   if(!ds.length) return `<div class="docs"><span class="none">Documents not ready yet</span></div>`;
   const st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st).sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')||a.label.localeCompare(b.label));
   const SL={'s3m':'3 Months','sytd':'This Year','sfull':'Full'}, up=ds[0].updated?` <span>· updated ${ds[0].updated}</span>`:'';
-  return `<div class="docs"><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
+  return `<div class="docs"><button class="doc wa" data-send="${encodeURIComponent(r.name)}">Send on WhatsApp<small>message + statement + invoices</small></button><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
     (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map(d=>`<button class="doc inv" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>${d.label}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>PDF ↓</i></span></button>`).join('')}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
 const fileCache={};
 function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' '):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
@@ -279,7 +291,7 @@ async function openDoc(btn){ const f=decodeURIComponent(btn.dataset.f);
     const bin=atob(d.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
     fileCache[f]=new File([u8],niceName(f),{type:'application/pdf'}); btn.classList.remove('busy'); btn.innerHTML=lbl; await deliver(btn,f);
   }catch(e){ btn.classList.remove('busy'); btn.innerHTML='Failed — tap again'; setTimeout(()=>btn.innerHTML=lbl,2500); } }
-document.addEventListener('click',e=>{ const b=e.target.closest('.doc'); if(!b) return; e.stopPropagation(); openDoc(b); },true);
+document.addEventListener('click',e=>{ const b=e.target.closest('.doc[data-f]'); if(!b) return; e.stopPropagation(); openDoc(b); },true);
 function stamp(){
   const u = data.synced ? new Date(data.synced) : (data.updated ? new Date(data.updated) : null);
   let t=''; if(u){ const m=Math.max(0,Math.round((Date.now()-u)/60000)); t = m<1?'just now': m<60? m+' min ago' : m<1440? Math.round(m/60)+' hr ago' : Math.round(m/1440)===1?'1 day ago':Math.round(m/1440)+' days ago'; }
@@ -341,6 +353,47 @@ $('#mk').onclick=e=>{ if(e.target.id==='mk') $('#mk').classList.remove('on'); };
 document.querySelectorAll('#mkc button').forEach(b=>b.onclick=()=>mkSetCur(b.dataset.c));
 $('#mko').onclick=()=>mkSetOpen(!mkOpen);
 $('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
+let sdRow=null, sdW='3m', sdFiles=null, sdLink='';
+const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
+function sdMsg(){ const r=sdRow, isDr=/^DR\.?\s/i.test(r.name), nm=r.name.replace(/^DR\.?\s*/i,'').trim();
+  const nInv=document.querySelectorAll('#sdi input:checked').length;
+  let t=`مرحبا ${isDr?'دكتور '+nm:nm} 🌷\nتحية طيبة من Dento Art Dental Lab.\n\nمرفق لحضرتك كشف الحساب (${SDW[sdW]})${nInv?` و${nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'}`:''}.\nالرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
+  if(sdLink) t+=`\nللدفع أونلاين: ${sdLink}\n`;
+  t+=`\nنشكر تعاملكم ويانا 🙏`; return t; }
+function sdReset(){ sdFiles=null; $('#sdgo').textContent='Prepare files'; $('#sdgo').disabled=false; $('#sdr').innerHTML=''; }
+function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; $('#sdl').checked=false;
+  $('#sdt').textContent=sdRow.name; document.querySelectorAll('#sds button').forEach(b=>b.classList.toggle('on',b.dataset.w===sdW));
+  const inv=(sdRow.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.k==='i').sort((a,b)=>(a.ym||'').localeCompare(b.ym||''));
+  $('#sdil').style.display=inv.length?'':'none';
+  $('#sdi').innerHTML=inv.map(d=>`<label class="ck"><input type="checkbox" checked data-f="${encodeURIComponent(d.name)}"> ${d.mo?d.mo+' · ':''}${d.label}<em>${d.bal!=null?sdRow.cur+' '+fmt(d.bal):''}</em></label>`).join('');
+  document.querySelectorAll('#sdi input').forEach(i=>i.onchange=()=>{ $('#sdm').value=sdMsg(); sdReset(); });
+  $('#sdm').value=sdMsg(); sdReset(); $('#sd').classList.add('on'); }
+async function sdFetch(f){ if(fileCache[f]) return fileCache[f];
+  const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&file='+encodeURIComponent(f)); if(!d.ok) throw new Error(d.error||'file');
+  const bin=atob(d.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  return fileCache[f]=new File([u8],niceName(f),{type:'application/pdf'}); }
+async function sdGo(){
+  if(sdFiles){ const text=$('#sdm').value; try{ await navigator.clipboard.writeText(text); }catch(e){}
+    try{ if(navigator.canShare && navigator.canShare({files:sdFiles})) await navigator.share({files:sdFiles, text}); else throw new Error('noshare'); $('#sdr').innerHTML='<div class="hint">Shared ✓ — the message is also copied; if WhatsApp didn’t include it, just paste it.</div>'; }
+    catch(e){ if(e.name==='AbortError') return; sdFiles.forEach(f=>{ const u=URL.createObjectURL(f),a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); });
+      location.href='https://wa.me/?text='+encodeURIComponent(text); }
+    return; }
+  $('#sdgo').disabled=true; $('#sdgo').textContent='Preparing…'; $('#sdr').innerHTML='';
+  try{
+    if($('#sdl').checked && !sdLink){ const q=FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mklink=1&title='+encodeURIComponent(sdRow.name)+'&cur='+(['USD','AED','SAR'].includes(sdRow.cur)?sdRow.cur:'USD')+'&amount='+sdRow.due.toFixed(2);
+      const d=await jsonp(q); if(!d.ok) throw new Error('Mamo: '+(d.error||'')); sdLink=d.link.short||d.link.url; $('#sdm').value=sdMsg(); }
+    const st=(sdRow.docs||[]).find(d=>d.name.endsWith('__statement-'+sdW+'.pdf'));
+    const names=(st?[st.name]:[]).concat([...document.querySelectorAll('#sdi input:checked')].map(i=>decodeURIComponent(i.dataset.f)));
+    if(!names.length) throw new Error('no documents');
+    sdFiles=[]; for(const n of names) sdFiles.push(await sdFetch(n));
+    $('#sdgo').disabled=false; $('#sdgo').textContent=`Share to WhatsApp (${sdFiles.length} PDF${sdFiles.length>1?'s':''})`;
+  }catch(e){ $('#sdgo').disabled=false; $('#sdgo').textContent='Prepare files'; $('#sdr').innerHTML=`<div class="err">${String(e.message||e).replace(/</g,'&lt;')}</div>`; } }
+$('#sdx').onclick=()=>$('#sd').classList.remove('on');
+$('#sd').onclick=e=>{ if(e.target.id==='sd') $('#sd').classList.remove('on'); };
+document.querySelectorAll('#sds button').forEach(b=>b.onclick=()=>{ sdW=b.dataset.w; document.querySelectorAll('#sds button').forEach(x=>x.classList.toggle('on',x===b)); $('#sdm').value=sdMsg(); sdReset(); });
+$('#sdl').onchange=()=>{ if(!$('#sdl').checked){ sdLink=''; $('#sdm').value=sdMsg(); } sdReset(); };
+$('#sdgo').onclick=sdGo;
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-send]'); if(!b) return; e.stopPropagation(); sdOpen(decodeURIComponent(b.dataset.send)); },true);
 </script>
 </body>
 </html>
