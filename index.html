@@ -651,11 +651,11 @@ document.addEventListener('click',e=>{ const b=e.target.closest('[data-more]'); 
 
 async function clOpen(name){ $('#clt').textContent=name; $('#clb').innerHTML='<div class="hint">Preparing the private link…</div>'; $('#cls').classList.add('on');
   try{ const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mkclient='+encodeURIComponent(name)); if(!d.ok) throw new Error(d.error);
-    const url=new URL('clinic.html?k='+d.token,location.href).href;
-    const msg=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\nهذا رابط حسابكم الخاص — تكدرون تشوفون الرصيد والفواتير وكشف الحساب بأي وقت، وتدفعون أونلاين من نفس الصفحة:\n${url}\n\n(الرابط خاص بعيادتكم فقط)`;
-    $('#clb').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">Private page for this clinic</div><div class="u" style="font-size:13px">${url}</div>${d.pay?`<div class="hint">Pay-now link on the page: <b>${d.pay}</b></div>`:'<div class="hint">No pay-now link (currency not supported by Mamo)</div>'}
+    const url=d.link||new URL('clinic.html?k='+d.token,location.href).href, pin=d.pin||'';
+    const msg=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\nهذا رابط حسابكم الخاص — تكدرون تشوفون الرصيد والفواتير والدفعات وكشف الحساب بأي وقت، وتدفعون أونلاين من نفس الصفحة:\n\n🔗 ${url}\n🔑 رمز الدخول: ${pin}\n\n(الرابط والرمز خاصين بعيادتكم فقط)`;
+    $('#clb').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">Private page for this clinic</div><div class="u" style="font-size:17px">${url}</div><div class="fl">Access code</div><div class="u" style="font-size:26px;letter-spacing:6px">${pin}</div>${d.pay?`<div class="hint">Pay-now link on the page: <b>${d.pay}</b></div>`:'<div class="hint">No pay-now link (currency not supported by Mamo)</div>'}
       <div class="acts"><button id="clcp">Copy</button><button id="clsh">Send</button><button id="clop">Open</button></div></div>`;
-    $('#clcp').onclick=async()=>{ try{ await navigator.clipboard.writeText(url); $('#clcp').textContent='Copied ✓'; }catch(e){ prompt('Copy',url); } };
+    $('#clcp').onclick=async()=>{ try{ await navigator.clipboard.writeText(msg); $('#clcp').textContent='Copied ✓'; }catch(e){ prompt('Copy',msg); } };
     $('#clsh').onclick=()=>{ if(navigator.share) navigator.share({text:msg}).catch(()=>{}); else location.href='https://wa.me/?text='+encodeURIComponent(msg); };
     $('#clop').onclick=()=>window.open(url,'_blank');
   }catch(e){ $('#clb').innerHTML=`<div class="err">Could not create the link (${String(e.message||e).replace(/</g,'&lt;')})</div>`; } }
