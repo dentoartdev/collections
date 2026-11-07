@@ -524,9 +524,9 @@ function todoItem(x){ const r=(data.rows||[]).find(y=>y.name===x.name), paid=!x.
       <div class="tl">What did he say?</div><textarea class="fi tre" dir="auto" id="re-${x.id}" placeholder="اكتب شنو قال الدكتور… (Claude يقراها ويحدّث الخطة)">${esc(x.reply)}</textarea>
       <div class="trow"><button class="tbtn g" data-note="${x.id}">Save</button>${x.manual?`<button class="tbtn" data-tdel="${x.id}">Delete</button>`:''}</div></div></div></div>`; }
 function todoHtml(){ const L=(data.todo||[]).slice(), t=todayIso();
+  const P=L.find(x=>x.kind==='plan'); const L2=L.filter(x=>x.kind!=='plan');
   const open=L2.filter(x=>!x.done).sort((a,b)=>a.due.localeCompare(b.due)||(a.n||999)-(b.n||999)), done=L2.filter(x=>x.done);
   const late=open.filter(x=>x.due<t), rest=open.filter(x=>x.due>=t), days=[...new Set(rest.map(x=>x.due))];
-  const P=L.find(x=>x.kind==='plan'); const L2=L.filter(x=>x.kind!=='plan');
   let h=`<div class="oc"><div class="oh"><h4>To-do list</h4><button class="addp" id="addp">＋ Add</button></div>`;
   if(P){ const pc=Math.min(100,Math.round(P.collected_aed/P.goal_aed*100));
     h+=`<div class="plan"><div class="ph" data-tgrp="_plan"><span dir="auto">${esc(P.title)}</span><span>${tdOpen._plan?'Hide':'Show plan'}</span></div>
