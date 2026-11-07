@@ -88,6 +88,21 @@ header img{height:34px}
 .payout{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:5px;font-size:13px}
 .payout b{font-weight:800}.payout .pd{color:var(--mut);font-size:11.5px;margin-left:6px}.payout .pa{color:var(--green);font-weight:800;white-space:nowrap}
 .row.mp{padding:8px 12px;border-radius:12px;gap:1px 10px}.row.mp .nm{font-size:14px}.row.mp .paid{font-size:14.5px}.row.mp .meta{font-size:11.5px;grid-column:1/-1}
+.mkbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:14px;background:var(--gold);color:var(--onGold);font:inherit;font-weight:800;font-size:14.5px;padding:13px;margin-bottom:10px;cursor:pointer}
+.sheet{position:fixed;inset:0;z-index:50;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
+.sheet.on{display:flex}
+.sh{width:100%;max-width:520px;background:var(--bg);border:1px solid var(--line);border-bottom:0;border-radius:22px 22px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));animation:up .25s ease both;max-height:92vh;overflow:auto}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sh h3{margin:2px 0 12px;font-size:17px}.sh .x{float:right;border:0;background:var(--card2);color:var(--txt);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer}
+.fl{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:12px 0 6px}
+.fi{width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px;font:inherit;font-size:16px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.seg button{border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:12px;padding:11px 0;font:inherit;font-weight:800;cursor:pointer}.seg button.on{background:var(--gold);color:var(--onGold);border-color:var(--gold)}
+.amtrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.opn{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 12px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}.opn.on{border-color:var(--gold);color:var(--gold)}
+.hint{font-size:12px;color:var(--mut);margin-top:6px}.hint b{color:var(--gold);cursor:pointer}
+.go{width:100%;margin-top:16px;border:0;border-radius:14px;background:var(--gold);color:var(--onGold);font:inherit;font-weight:800;font-size:15px;padding:14px;cursor:pointer}.go:disabled{opacity:.5}
+.res{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}.res .u{font-size:17px;font-weight:800;color:var(--gold);word-break:break-all}.res .acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}.res .acts button{border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:10px;padding:10px 0;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+.err{color:var(--red);font-size:13px;margin-top:10px}
 .mst{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:6px;padding:2px 6px}.mst.ok{background:rgba(62,207,142,.15);color:var(--green)}.mst.bad{background:rgba(239,83,80,.15);color:var(--red)}.mst.ref{background:rgba(240,162,74,.15);color:var(--orange)}
 .grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
 .paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
@@ -143,6 +158,14 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
   <div class="list" id="list"><div class="msg">Loading…</div></div>
   <footer>Dento Art Dental Lab · Collections</footer>
 </div>
+<div class="sheet" id="mk"><div class="sh">
+<button class="x" id="mkx">✕</button><h3>Create Mamo link</h3>
+<div class="fl">Doctor / clinic</div><input class="fi" id="mkn" list="mkl" placeholder="Choose or type a name" autocomplete="off"><datalist id="mkl"></datalist>
+<div class="fl">Currency</div><div class="seg" id="mkc"><button data-c="USD" class="on">USD $</button><button data-c="AED">AED</button><button data-c="SAR">SAR</button></div>
+<div class="fl">Amount</div><div class="amtrow"><input class="fi" id="mka" inputmode="decimal" placeholder="0.00"><span class="opn" id="mko">◯ Open amount</span></div>
+<div class="hint" id="mkh"></div>
+<button class="go" id="mkgo">Create link</button><div id="mkr"></div>
+</div></div>
 <script>
 const FEED = 'https://script.google.com/macros/s/AKfycbxzrkpanri4fZax5EbZDgDj324CAkcneQMxe3Ylcl_zPMP-Covk_-vPUgUWB3EFsptOFg/exec';
 const CUR = ['USD','SAR','OMR','AED'];
@@ -192,11 +215,11 @@ function renderMamo(){ const d=mamoD; if(!d) return;
   if(!d.ok){ $('#list').innerHTML=`<div class="msg">Mamo not connected yet (${d.error||'error'})</div>`; return; }
   const who=x=>{ let t=(x.what||'').split(' - ')[0].split(' | ')[0].trim(); if(/^untitled/i.test(t)) t=''; return (t||x.name||'—').replace(/</g,'&lt;'); };
   const st=x=> x.status==='captured' ? (x.refund>0?'<span class="mst ref">Refunded</span>':'<span class="mst ok">Paid</span>') : `<span class="mst bad">${x.status}</span>`;
-  let h=`<div class="mhero"><div class="ml1">Waiting at Mamo → your bank</div><div class="mv1"><small>AED</small>${fmt(d.pending)}</div><div class="ms">${d.upcoming.length?`${d.upcoming.length} transfer${d.upcoming.length>1?'s':''} coming · next ${dshort(d.upcoming[0].date)} (${inDays(d.upcoming[0].date)})`:'Nothing pending — all settled'} · live ${d.at}</div></div>`;
+  let h=`<button class="mkbtn" id="mkbtn">＋ Create Mamo link</button><div class="mhero"><div class="ml1">Waiting at Mamo → your bank</div><div class="mv1"><small>AED</small>${fmt(d.pending)}</div><div class="ms">${d.upcoming.length?`${d.upcoming.length} transfer${d.upcoming.length>1?'s':''} coming · next ${dshort(d.upcoming[0].date)} (${inDays(d.upcoming[0].date)})`:'Nothing pending — all settled'} · live ${d.at}</div></div>`;
   h+=`<div class="mgrid"><div class="mbox"><div class="k">This month · net AED</div><div class="v"><small>AED</small>${fmt(d.month.gross)}</div></div><div class="mbox"><div class="k">Payments this month</div><div class="v">${d.month.count}</div></div></div>`;
   if(d.upcoming.length){ h+='<div class="grp">Coming to your bank</div>'+d.upcoming.map(u=>`<div class="payout"><span><b>${dshort(u.date)}</b><span class="pd">${inDays(u.date)}</span></span><span class="pa">AED ${fmt(u.amount)}</span></div>`).join(''); }
   h+='<div class="grp">Latest Mamo payments</div>'+d.recent.filter(x=>x.status==='captured').map((x,i)=>`<div class="row mp" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${who(x)}</div><div class="paid"><small>${x.cur}</small>${x.status==='captured'?'+':''}${fmt(x.amount)}</div><div class="meta"><b>${x.at.slice(8,10)}/${x.at.slice(5,7)}/${x.at.slice(0,4)}</b> ${x.at.slice(11)} · ${x.method||''} · <b>${agoTxt(x.at)}</b></div></div>`).join('');
-  $('#list').innerHTML=h; }
+  $('#list').innerHTML=h; const mb=$('#mkbtn'); if(mb) mb.onclick=mkOpenSheet; }
 setInterval(()=>{ if(view==='mamo' && !document.hidden) loadMamo(true); },60000);
 function render(){
   if(!data) return;
@@ -290,6 +313,33 @@ $('#th').onclick=()=>{ const t=document.documentElement.dataset.theme==='light'?
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && store.get('pin')) refresh(); });
 if(store.get('pin')){ $('#pin').style.display='none'; $('#app').hidden=false; refresh(); } else showPin();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+let mkCur='USD', mkOpen=false;
+function mkOpenSheet(){ $('#mkl').innerHTML=(data&&data.rows||[]).map(r=>`<option value="${r.name.replace(/"/g,'&quot;')}">`).join(''); $('#mkr').innerHTML=''; $('#mk').classList.add('on'); }
+function mkSetCur(c){ mkCur=c; document.querySelectorAll('#mkc button').forEach(b=>b.classList.toggle('on',b.dataset.c===c)); }
+function mkHint(){ const r=(data&&data.rows||[]).find(x=>x.name.toUpperCase()===$('#mkn').value.trim().toUpperCase());
+  if(r){ if(['USD','AED','SAR'].includes(r.cur)) mkSetCur(r.cur); $('#mkh').innerHTML=`Balance: ${r.cur} ${fmt(r.due)} · <b id="mkuse">use full balance</b>`; const u=$('#mkuse'); if(u) u.onclick=()=>{ mkSetOpen(false); $('#mka').value=r.due.toFixed(2); }; }
+  else $('#mkh').innerHTML=''; }
+function mkSetOpen(v){ mkOpen=v; $('#mko').classList.toggle('on',v); $('#mko').textContent=(v?'● ':'◯ ')+'Open amount'; $('#mka').disabled=v; if(v) $('#mka').value=''; $('#mka').placeholder=v?'Doctor types the amount':'0.00'; }
+async function mkCreate(){ const n=$('#mkn').value.trim(), a=parseFloat(($('#mka').value||'').replace(/,/g,'')); $('#mkr').innerHTML='';
+  if(!n) return $('#mkr').innerHTML='<div class="err">Choose the doctor first</div>';
+  if(!mkOpen && !(a>=2)) return $('#mkr').innerHTML='<div class="err">Enter an amount (min 2) or choose Open amount</div>';
+  $('#mkgo').disabled=true; $('#mkgo').textContent='Creating…';
+  try{ const q=FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mklink=1&title='+encodeURIComponent(n)+'&cur='+mkCur+(mkOpen?'&open=1':'&amount='+a);
+    const d=await jsonp(q); if(!d.ok) throw new Error(d.error||'error'); const L=d.link, link=L.short||L.url;
+    const txt=`Dento Art Dental Lab – payment link for ${n}${L.amount?` (${L.cur} ${fmt(L.amount)})`:''}:\n${link}`;
+    $('#mkr').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">${L.amount?`${L.cur} ${fmt(L.amount)}`:`Open amount · ${L.cur}`} · ready</div><div class="u">${link}</div><div class="acts"><button id="mkcp">Copy</button><button id="mksh">Share</button><button id="mkop">Open</button></div></div>`;
+    $('#mkcp').onclick=async()=>{ try{ await navigator.clipboard.writeText(link); $('#mkcp').textContent='Copied ✓'; }catch(e){ prompt('Copy the link',link); } };
+    $('#mksh').onclick=()=>{ if(navigator.share) navigator.share({text:txt}).catch(()=>{}); else location.href='https://wa.me/?text='+encodeURIComponent(txt); };
+    $('#mkop').onclick=()=>window.open(L.url,'_blank');
+    mamoAt=0;
+  }catch(e){ $('#mkr').innerHTML=`<div class="err">Could not create: ${String(e.message||e).replace(/</g,'&lt;')}</div>`; }
+  $('#mkgo').disabled=false; $('#mkgo').textContent='Create link'; }
+document.addEventListener('DOMContentLoaded',()=>{});
+$('#mkx').onclick=()=>$('#mk').classList.remove('on');
+$('#mk').onclick=e=>{ if(e.target.id==='mk') $('#mk').classList.remove('on'); };
+document.querySelectorAll('#mkc button').forEach(b=>b.onclick=()=>mkSetCur(b.dataset.c));
+$('#mko').onclick=()=>mkSetOpen(!mkOpen);
+$('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
 </script>
 </body>
 </html>
