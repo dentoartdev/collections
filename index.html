@@ -209,7 +209,7 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </div>
 <div class="sheet" id="sd"><div class="sh">
 <button class="x" id="sdx">✕</button><h3 id="sdt">Send on WhatsApp</h3>
-<div class="fl">Statement</div><div class="seg" id="sds"><button data-w="3m" class="on">3 Months</button><button data-w="ytd">This Year</button><button data-w="full">Full</button></div>
+<div class="fl">Statement</div><div class="seg seg4" id="sds"><button data-w="3m" class="on">3 Months</button><button data-w="ytd">This Year</button><button data-w="full">Full</button><button data-w="none">None</button></div>
 <div class="fl" id="sdil">Invoices</div><div id="sdi"></div>
 <div class="fl">Mamo payment link</div><div class="seg seg4" id="sdlk"><button data-l="none" class="on">None</button><button data-l="open">Open</button><button data-l="full">Full</button><button data-l="custom">Custom</button></div><input class="fi" id="sdca" inputmode="decimal" placeholder="Amount" style="display:none;margin-top:6px">
 <div class="fl">Send</div><div class="seg seg2" id="sdmm"><button data-m="1" class="on">With message</button><button data-m="0">Files only</button></div><textarea class="fi ta" id="sdm" dir="auto" style="margin-top:8px"></textarea>
@@ -419,7 +419,9 @@ let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null, sd
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
 function sdInvSum(){ return [...document.querySelectorAll('#sdi input:checked')].reduce((t,i)=>{ const x=docInfo(decodeURIComponent(i.dataset.f)); return t+(x&&x.bal?x.bal:0); },0); }
 function sdMsg(){ const r=sdRow, nInv=document.querySelectorAll('#sdi input:checked').length;
-  let t=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\nمرفق كشف الحساب (${SDW[sdW]})${nInv?` و${nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'}`:''}.\nالرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
+  const invTxt=nInv?(nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'):'';
+  const att=sdW==='none' ? (invTxt?`مرفق ${invTxt}.`:'') : `مرفق كشف الحساب (${SDW[sdW]})${invTxt?` و${invTxt}`:''}.`;
+  let t=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\n${att}${att?'\n':''}الرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
   if(sdLk!=='none'){ const amt = sdLk==='full' ? r.due : sdLkAmt, inv=sdInvSum();
     let line = sdLk==='open' ? 'ومرفق لينك دفع مفتوح، تكدرون تدفعون بيه أي مبلغ:'
       : sdLk==='full' ? `ومرفق لينك دفع بكامل المبلغ المستحق (${r.cur} ${fmt(r.due)}):`
@@ -451,9 +453,9 @@ async function sdGo(){
       if(sdLk==='open') q+='&open=1'; else { const a = sdLk==='full' ? sdRow.due : parseFloat(($('#sdca').value||'').replace(/,/g,'')); if(!(a>=2)) throw new Error('Enter the custom amount (min 2)'); sdLkAmt=a; q+='&amount='+a.toFixed(2); }
       const d=await jsonp(q); if(!d.ok) throw new Error('Mamo: '+(d.error||'')); sdLink=d.link.short||d.link.url; $('#sdm').value=sdMsg();
       if(d.reused) $('#sdr').innerHTML='<div class="hint">Using this doctor’s existing open link ✓</div>'; }
-    const st=(sdRow.docs||[]).find(d=>d.name.endsWith('__statement-'+sdW+'.pdf'));
+    const st=sdW==='none'?null:(sdRow.docs||[]).find(d=>d.name.endsWith('__statement-'+sdW+'.pdf'));
     const names=(st?[st.name]:[]).concat([...document.querySelectorAll('#sdi input:checked')].map(i=>decodeURIComponent(i.dataset.f)));
-    if(!names.length) throw new Error('no documents');
+    if(!names.length) throw new Error('Choose a statement or at least one invoice');
     sdFiles=[]; for(const n of names) sdFiles.push(await sdFetch(n));
     $('#sdgo').disabled=false; $('#sdgo').textContent=`Share to WhatsApp (${sdFiles.length} PDF${sdFiles.length>1?'s':''})`;
   }catch(e){ $('#sdgo').disabled=false; $('#sdgo').textContent='Prepare files'; $('#sdr').innerHTML=`<div class="err">${String(e.message||e).replace(/</g,'&lt;')}</div>`; } }
