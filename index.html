@@ -342,7 +342,7 @@ function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{
   return `<div class="docs"><button class="doc wa" data-send="${encodeURIComponent(r.name)}">Send on WhatsApp<small>message + statement + invoices</small></button><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
     (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map((d,ix)=>`<button class="doc inv${ix>=5&&!invAll.has(r.name)?' hid':''}" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>#${d.label.replace(/^Invoice\s+/,'').split('-').pop()}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>↓</i></span></button>`).join('')}${inv.length>5?`<button class="morei" data-more="${encodeURIComponent(r.name)}">${invAll.has(r.name)?'Show less':`View all ${inv.length} invoices`}</button>`:''}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
 const fileCache={};
-function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' '):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
+function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' ')+(i.mo?' ('+i.mo+')':''):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
 async function deliver(btn, f){ const file=fileCache[f];
   if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); btn.classList.remove('ready'); return; }catch(e){ if(e.name==='AbortError'){btn.classList.remove('ready');return;} btn.classList.add('ready'); btn.dataset.lbl=btn.dataset.lbl||btn.innerHTML; btn.innerHTML='Tap to open ↗'; return; } }
   const u=URL.createObjectURL(file), a=document.createElement('a'); a.href=u; a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000); btn.classList.remove('ready'); }
@@ -419,7 +419,9 @@ let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null, sd
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
 function sdInvSum(){ return [...document.querySelectorAll('#sdi input:checked')].reduce((t,i)=>{ const x=docInfo(decodeURIComponent(i.dataset.f)); return t+(x&&x.bal?x.bal:0); },0); }
 function sdMsg(){ const r=sdRow, nInv=document.querySelectorAll('#sdi input:checked').length;
-  const invTxt=nInv?(nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'):'';
+  const AR=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const mons=[...document.querySelectorAll('#sdi input:checked')].map(i=>docInfo(decodeURIComponent(i.dataset.f))).filter(x=>x&&x.ym).map(x=>`${AR[+x.ym.slice(5)-1]} ${x.ym.slice(0,4)} (${r.cur} ${fmt(x.bal||0)})`);
+  const invTxt=nInv?(nInv===1?'فاتورة شهر ':'فواتير أشهر ')+(mons.length?mons.join('، '):'')+'':'';
   const att=sdW==='none' ? (invTxt?`مرفق ${invTxt}.`:'') : `مرفق كشف الحساب (${SDW[sdW]})${invTxt?` و${invTxt}`:''}.`;
   let t=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\n${att}${att?'\n':''}الرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
   if(sdLk!=='none'){ const amt = sdLk==='full' ? r.due : sdLkAmt, inv=sdInvSum();
