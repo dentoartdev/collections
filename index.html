@@ -180,6 +180,7 @@ header img{height:34px}
 .seg4{grid-template-columns:repeat(4,1fr)}.seg4 button{font-size:13px}
 .ta{min-height:150px;resize:vertical;line-height:1.5;font-size:15px}
 .go.wa2{background:#25d366;color:#05351b}
+.doc.inv.hid{display:none}.morei{width:100%;border:1px dashed var(--line);background:transparent;color:var(--gold);border-radius:12px;padding:9px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
 .docs .none{font-size:12px;color:var(--mut)}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 </style>
@@ -339,7 +340,7 @@ function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{
   const st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st).sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')||a.label.localeCompare(b.label));
   const SL={'s3m':'3 Months','sytd':'This Year','sfull':'Full'}, up=ds[0].updated?` <span>· updated ${ds[0].updated}</span>`:'';
   return `<div class="docs"><button class="doc wa" data-send="${encodeURIComponent(r.name)}">Send on WhatsApp<small>message + statement + invoices</small></button><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
-    (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map(d=>`<button class="doc inv" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>${d.label}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>PDF ↓</i></span></button>`).join('')}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
+    (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map((d,ix)=>`<button class="doc inv${ix>=5&&!invAll.has(r.name)?' hid':''}" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>${d.label}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>PDF ↓</i></span></button>`).join('')}${inv.length>5?`<button class="morei" data-more="${encodeURIComponent(r.name)}">${invAll.has(r.name)?'Show less':`View all ${inv.length} invoices`}</button>`:''}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
 const fileCache={};
 function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' '):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
 async function deliver(btn, f){ const file=fileCache[f];
@@ -513,7 +514,7 @@ function renderOverview(){
   const ap=$('#addp'); if(ap) ap.onclick=pmOpen;
   if(!mamoD || Date.now()-mamoAt>60000) jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mamo=1').then(d=>{ mamoD=d; mamoAt=Date.now(); if(view==='ov' && d.ok){ const t=$('#ovmamo'),v=$('#ovmamov'); if(t) t.textContent=d.upcoming.length?'next '+dshort(d.upcoming[0].date)+' · '+inDays(d.upcoming[0].date):'nothing pending'; if(v) v.textContent='AED '+fmt0(d.pending); } }).catch(()=>{});
 }
-const tdOpen={};
+const tdOpen={}; const invAll=new Set();
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function dayLabel(iso){ const n=dayDiff(iso), d=new Date(iso+'T00:00:00'), base=`${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; return n===0?'Today · '+base:n===1?'Tomorrow · '+base:base; }
 const tdExp={};
@@ -634,6 +635,8 @@ async function printBalances(){
   if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); return; }catch(e){ if(e.name==='AbortError') return; } }
   const u=URL.createObjectURL(file), aEl=document.createElement('a'); aEl.href=u; aEl.download=name; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000);
 }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-more]'); if(!b) return; e.stopPropagation(); const n=decodeURIComponent(b.dataset.more), on=!invAll.has(n); if(on) invAll.add(n); else invAll.delete(n);
+  const box=b.parentElement; box.querySelectorAll('.doc.inv').forEach((x,i)=>{ if(i>=5) x.classList.toggle('hid',!on); }); b.textContent=on?'Show less':`View all ${box.querySelectorAll('.doc.inv').length} invoices`; },true);
 </script>
 </body>
 </html>
