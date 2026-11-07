@@ -145,7 +145,7 @@ header img{height:34px}
 .pw{margin-top:8px}.pwk{border-top:1px solid var(--line);padding:8px 0;font-size:12.5px;line-height:1.5}.pwk b{font-weight:800}.pwk span{float:right;font-weight:800;color:var(--col)}
 .prl{margin:4px 0 0;padding-inline-start:18px;font-size:12.5px;line-height:1.6}
 .pnone{font-size:12.5px;color:var(--mut);padding:4px 0}
-.pchip{display:inline-flex;align-items:center;padding-left:11px;padding-right:11px}
+.pchip{display:inline-flex;align-items:center;padding-left:11px;padding-right:11px}.pchip.busy{opacity:.45;pointer-events:none}
 .mst{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:6px;padding:2px 6px}.mst.ok{background:rgba(62,207,142,.15);color:var(--green)}.mst.bad{background:rgba(239,83,80,.15);color:var(--red)}.mst.ref{background:rgba(240,162,74,.15);color:var(--orange)}
 .grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
 .paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
@@ -305,6 +305,7 @@ function render(){
   if(view==='ov'){ renderOverview(); stamp(); return; }
   if(view==='mamo'){ if(mamoD) renderMamo(); loadMamo(false); stamp(); return; }
   if(view==='pay'){ renderPays(rows); stamp(); return; }
+  ensurePdfLibs().catch(()=>{});
   const sorts=[['value','Highest'],['days','Longest unpaid'],['name','A–Z']];
   const PRN='<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 6V1.8h8V6"/><rect x="1.5" y="6" width="13" height="5.5" rx="1.2"/><path d="M4 9.5h8v4.7H4z" fill="var(--card)"/></svg>';
   $('#sorts').innerHTML = `<span class="chip pchip" id="prn" title="Print A4" aria-label="Print">${PRN}</span>` + sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'');
@@ -553,61 +554,85 @@ $('#pmgo').onclick=async()=>{ const act=$('#pmt').value.trim(), n=$('#pmn').valu
     const d=await jsonp(q); if(!d.ok) throw new Error(d.error); data.todo=d.todo; $('#pm').classList.remove('on'); if(view==='ov') renderOverview(); }
   catch(e){ $('#pmr').innerHTML='<div class="err">Could not save — try again</div>'; }
   $('#pmgo').disabled=false; $('#pmgo').textContent='Add task'; };
-// Builds the printable A4 (landscape) balances report. Shared by the preview (node) and the app.
-const PRINT_MONTH_ORDER=["Nov '26","Oct '26","Sep '26","Aug '26","Jul '26","Jun '26","May '26","Apr '26","Mar '26","Feb '26","Jan '26","2025 & Older","Unapplied Credit"];
-function printDoc(rows, opt){
-  opt=opt||{}; const sortK=opt.sort||'value', curF=opt.cur||null, logo=opt.logo||'logo.png', now=opt.now||new Date();
+// Balances report as a real PDF (A4 landscape, fits in ≤ 2 pages). Shared by the node test and the app.
+function buildBalancesPdf(rows, opt, jsPDF){
+  for(const v of [{keep:true},{keep:true,smallFirst:true},{keep:false}]){ const d=buildBalancesPdf_(rows, Object.assign({},opt,v), jsPDF); if(d.getNumberOfPages()<=2 || !v.keep) return d; }
+}
+function buildBalancesPdf_(rows, opt, jsPDF){
+  opt=opt||{}; const sortK=opt.sort||'value', curF=opt.cur||null, now=opt.now||new Date();
+  const ORDER=["Nov '26","Oct '26","Sep '26","Aug '26","Jul '26","Jun '26","May '26","Apr '26","Mar '26","Feb '26","Jan '26","2025 & Older","Unapplied Credit"];
   const f2=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const esc=t=>String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const f0=n=>Math.round(n).toLocaleString('en-US');
   const dmy=t=>{ const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(t||''); return m? m[3]+'-'+m[2]+'-'+m[1] : null; };
-  const lastIso=r=> /invoiced/i.test(r.lastPayText||'') ? null : (r.lastPay||dmy(r.lastPayText));
   const days=iso=>iso?Math.max(0,Math.floor((now-new Date(iso+'T00:00:00'))/864e5)):null;
   const CURS=['USD','SAR','OMR','AED'].filter(c=>!curF||c===curF);
-  const sortLabel={value:'Highest balance first',days:'Longest since last payment first',name:'A–Z'}[sortK]||'';
-  const dateTxt=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  let body='', summary='';
-  CURS.forEach(cur=>{
-    let rs=rows.filter(r=>r.cur===cur && Math.abs(r.due)>0.004);
-    if(!rs.length) return;
-    if(sortK==='days') rs.sort((a,b)=>{ const da=days(lastIso(a)), db=days(lastIso(b)); return (db==null?1e9:db)-(da==null?1e9:da) || b.due-a.due; });
-    else if(sortK==='name') rs.sort((a,b)=>a.name.localeCompare(b.name));
-    else rs.sort((a,b)=>b.due-a.due);
-    const used=PRINT_MONTH_ORDER.filter(h=>rs.some(r=>(r.months||[]).some(m=>m[0]===h && Math.abs(m[1])>0.004)));
-    const tot=rs.reduce((t,r)=>t+r.due,0), mt=used.map(h=>rs.reduce((t,r)=>t+((r.months||[]).find(m=>m[0]===h)||[0,0])[1],0));
-    summary+=`<div class="sm"><span>${cur}</span><b>${f2(tot)}</b><i>${rs.length} clients</i></div>`;
-    const wide=used.length>8, fm=v=>wide?Math.round(v).toLocaleString('en-US'):f2(v);
-    const age=h=>{ const i=PRINT_MONTH_ORDER.indexOf(h); return h==='Unapplied Credit'?-1:i; };
-    const tint=h=>{ const a=age(h); if(a<=0) return ''; const k=Math.min(1,a/11); return `background:rgba(208,40,40,${(0.06+0.40*k).toFixed(2)})!important;color:rgb(${Math.round(60+120*k)},${Math.round(40-25*k)},${Math.round(40-25*k)});font-weight:${a>=3?700:500}`; };
-    const mh=h=>h==='2025 & Older'?'≤ 2025':h==='Unapplied Credit'?'Credit':h.replace("'","’");
-    body+=`<section><h2><span>${cur}</span> ${rs.length} clients · total ${cur} ${f2(tot)}</h2><table class="${wide?'wd':''}"><colgroup><col class="n"><col class="c"><col class="t"><col class="lp">${used.map(()=>'<col>').join('')}</colgroup><thead><tr><th class="n">#</th><th class="c">Clinic / Doctor</th><th class="r t">Total</th><th class="lp">Last payment</th>${used.map(h=>`<th class="r m">${mh(h)}</th>`).join('')}</tr></thead><tbody>`+
-      rs.map((r,i)=>{ const li=lastIso(r), d=days(li), inv=/invoiced/i.test(r.lastPayText||'');
-        const invD=inv?days(dmy(r.lastPayText)):null, dd=inv?invD:d, cls=dd==null?'':dd>=60?' late':dd>=30?' warn':'';
-        const lp= inv ? `<span class="lpv${cls}">No payment · inv. ${esc((dmy(r.lastPayText)||'').split('-').reverse().join('/'))}</span>` : li ? `<span class="lpv${cls}">${esc(r.lastPayText)} · ${d}d</span>` : '<span class="mu">—</span>';
-        return `<tr><td class="n">${i+1}</td><td class="c">${esc(r.name)}</td><td class="r t">${f2(r.due)}</td><td class="lp">${lp}</td>${used.map(h=>{ const v=((r.months||[]).find(m=>m[0]===h)||[0,0])[1]; return Math.abs(v)<0.005 ? `<td class="r m z">–</td>` : `<td class="r m" style="${tint(h)}">${fm(v)}</td>`; }).join('')}</tr>`; }).join('')+
-      `<tr class="tot"><td></td><td class="c">Total ${cur}</td><td class="r t">${f2(tot)}</td><td></td>${mt.map(v=>`<td class="r m">${Math.abs(v)<0.005?'–':fm(v)}</td>`).join('')}</tr></tbody></table></section>`;
-  });
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Dento Art – Outstanding balances – ${dateTxt}</title><style>
-@page{size:A4 landscape;margin:11mm 10mm 12mm}
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#1b1b1b;font-size:8.6pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.2pt solid #c9a227;padding-bottom:6pt;margin-bottom:8pt}
-header img{height:30pt}header .tt{text-align:right}header h1{margin:0;font-size:14pt;letter-spacing:.5pt}header .sub{color:#6b6b6b;font-size:8pt;margin-top:2pt}
-.sums{display:flex;gap:6pt;margin:0 0 9pt}.sm{border:.6pt solid #ddd;border-radius:5pt;padding:4pt 8pt;display:flex;gap:6pt;align-items:baseline}.sm span{font-weight:700;color:#a8811f;font-size:7.5pt;letter-spacing:.6pt}.sm b{font-size:10pt}.sm i{font-style:normal;color:#777;font-size:7.5pt}
-section{margin-bottom:10pt;page-break-inside:auto}
-h2{font-size:9pt;margin:0 0 3pt;font-weight:600;color:#444}h2 span{display:inline-block;background:#1b1b1b;color:#fff;border-radius:3pt;padding:1pt 5pt;margin-right:4pt;font-size:7.5pt;letter-spacing:.6pt}
-table{width:100%;border-collapse:collapse;table-layout:fixed}col.n{width:18pt}col.c{width:175pt}.wd col.c{width:150pt}.wd td.m,.wd th.m{padding-left:2pt;padding-right:3pt}col.t{width:68pt}col.lp{width:108pt}thead{display:table-header-group}tr{page-break-inside:avoid}
-th{font-size:7pt;text-transform:uppercase;letter-spacing:.4pt;color:#555;font-weight:700;text-align:left;padding:3pt 4pt;border-bottom:.8pt solid #1b1b1b;white-space:nowrap}
-td{padding:3pt 4pt;border-bottom:.8pt solid #a9a9a9;white-space:nowrap;vertical-align:middle}td+td{border-left:.4pt solid #dcdcdc}
-tbody tr:nth-child(even) td{background:#efede7}
-.n{width:16pt;color:#999;text-align:right}.c{font-weight:600;overflow:hidden;text-overflow:ellipsis}td.m,th.m{overflow:hidden}.r{text-align:right;font-variant-numeric:tabular-nums}.t{font-weight:700}.m{color:#333}.z{color:#c4c4c4}.lp{color:#333}.mu{color:#8a8a8a}.lpv.warn{color:#b86a00;font-weight:700}.lpv.late{color:#c62828;font-weight:800}
-tr.tot td{border-top:1pt solid #1b1b1b;border-bottom:0;font-weight:700;background:#fff!important;color:#1b1b1b!important}
-</style></head><body><header><img src="${logo}" alt="Dento Art"><div class="tt"><h1>Outstanding balances</h1><div class="sub">${dateTxt} · ${sortLabel}${curF?' · '+curF+' only':''} · Source: QuickBooks</div></div></header>
-<div class="sums">${summary}</div>${body}</body></html>`;
+  const secs=CURS.map(cur=>{ let rs=rows.filter(r=>r.cur===cur && Math.abs(r.due)>0.004);
+    const li=r=>/invoiced/i.test(r.lastPayText||'')?null:(r.lastPay||dmy(r.lastPayText));
+    if(sortK==='days') rs.sort((a,b)=>{ const da=days(li(a)),db=days(li(b)); return (db==null?1e9:db)-(da==null?1e9:da)||b.due-a.due; });
+    else if(sortK==='name') rs.sort((a,b)=>a.name.localeCompare(b.name)); else rs.sort((a,b)=>b.due-a.due);
+    const used=ORDER.filter(h=>rs.some(r=>(r.months||[]).some(m=>m[0]===h&&Math.abs(m[1])>0.004)));
+    return {cur,rs,used,li,tot:rs.reduce((t,r)=>t+r.due,0)}; }).filter(s=>s.rs.length);
+  if(opt.smallFirst) secs.sort((a,b)=>(a.rs.length>12)-(b.rs.length>12));
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'}); const W=297,H=210,M=8;
+  // size rows so everything fits in 2 pages: lines = rows + per-section (title+head+total)
+  // rows + (head + total) per section + one repeated head when a table splits; gaps & titles per section; page header on page 1
+  const lines=secs.reduce((t,s)=>t+s.rs.length+2,0)+1, avail=2*(H-2*M-4)-22-secs.length*9;
+  const rowH=Math.max(3.4,Math.min(5.6,avail/lines*0.97)); let fs=Math.min(8,(rowH-1.0)/(0.3528*1.15)); fs=Math.max(5.4,fs);
+  const pad=Math.max(0.35,(rowH-fs*0.3528*1.15)/2);
+  // header
+  if(opt.logo){ try{ doc.addImage(opt.logo,'PNG',M,M-1,36,10.5); }catch(e){} }
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(27); doc.text('Outstanding balances',W-M,M+3.5,{align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110);
+  const sortLabel={value:'Highest balance first',days:'Longest since last payment first',name:'A–Z'}[sortK];
+  doc.text(`${now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})} · ${sortLabel}${curF?' · '+curF+' only':''} · Source: QuickBooks`,W-M,M+8,{align:'right'});
+  doc.setDrawColor(201,162,39); doc.setLineWidth(0.5); doc.line(M,M+11,W-M,M+11);
+  let x=M, y=M+15; doc.setFontSize(7.5);
+  secs.forEach(s=>{ const t1=s.cur, t2=`${s.cur} ${f2(s.tot)}`, t3=`${s.rs.length} clients`; doc.setFont('helvetica','bold'); const w=doc.getTextWidth(t1)+doc.getTextWidth(t2)+doc.getTextWidth(t3)+12;
+    doc.setDrawColor(215); doc.setLineWidth(0.2); doc.roundedRect(x,y-3.6,w,5.4,1.2,1.2); doc.setTextColor(168,129,31); doc.text(t1,x+2,y); doc.setTextColor(27); doc.text(t2,x+4+doc.getTextWidth(t1),y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(120); doc.text(t3,x+8+doc.getTextWidth(t1)+doc.getTextWidth(t2),y); x+=w+3; });
+  let startY=y+5;
+  const tint=(h)=>{ const a=ORDER.indexOf(h); if(h==='Unapplied Credit'||a<=0) return null; const k=Math.min(1,a/11), al=0.06+0.40*k;
+    return {fill:[Math.round(255-(255-208)*al),Math.round(255-(255-40)*al),Math.round(255-(255-40)*al)], text:[Math.round(60+120*k),Math.round(40-25*k),Math.round(40-25*k)], bold:a>=3}; };
+  secs.forEach((s,si)=>{
+    const wide=s.used.length>8, fm=v=>wide?f0(v):f2(v), mh=h=>h==='2025 & Older'?'<= 2025':h==='Unapplied Credit'?'CREDIT':h.toUpperCase();
+    const head=[['#','CLINIC / DOCTOR',`TOTAL (${s.cur})`,'LAST PAYMENT',...s.used.map(mh)]];
+    const body=s.rs.map((r,i)=>{ const inv=/invoiced/i.test(r.lastPayText||''), l=s.li(r), d=inv?days(dmy(r.lastPayText)):days(l);
+      const lp=inv?`No payment · inv. ${(dmy(r.lastPayText)||'').split('-').reverse().join('/')}`:l?`${r.lastPayText} · ${days(l)}d`:'—';
+      return [String(i+1), r.name, `${s.cur} ${f2(r.due)}`, {content:lp, _d:d}, ...s.used.map(h=>{ const v=((r.months||[]).find(m=>m[0]===h)||[0,0])[1]; return {content:Math.abs(v)<0.005?'–':fm(v), _h:h, _z:Math.abs(v)<0.005}; })]; });
+    const mt=s.used.map(h=>s.rs.reduce((t,r)=>t+((r.months||[]).find(m=>m[0]===h)||[0,0])[1],0));
+    body.push([{content:'',_tot:1},{content:`Total ${s.cur}`,_tot:1},{content:`${s.cur} ${f2(s.tot)}`,_tot:1},{content:'',_tot:1},...mt.map(v=>({content:Math.abs(v)<0.005?'–':fm(v),_tot:1}))]);
+    doc.setFont('helvetica','bold'); doc.setFontSize(fs+0.6); doc.setTextColor(27);
+    const need=(s.rs.length+2)*rowH+8;
+    if(startY>H-M-20 || (opt.keep && s.rs.length<=12 && startY+need>H-M)){ doc.addPage(); startY=M+4; }
+    doc.setFillColor(27,27,27); doc.roundedRect(M,startY-3.2,doc.getTextWidth(s.cur)+3.4,4.4,0.8,0.8,'F'); doc.setTextColor(255); doc.text(s.cur,M+1.7,startY);
+    doc.setTextColor(70); doc.setFont('helvetica','normal'); doc.text(`${s.rs.length} clients · total ${s.cur} ${f2(s.tot)}`,M+doc.getTextWidth(s.cur)+5.5,startY);
+    doc.autoTable({ head, body, startY:startY+1.6, margin:{left:M,right:M,top:M+2,bottom:M}, theme:'plain', tableWidth:W-2*M,
+      styles:{font:'helvetica',fontSize:fs,cellPadding:{top:pad,bottom:pad,left:1.2,right:1.2},textColor:[27,27,27],lineColor:[205,205,205],lineWidth:{bottom:0.25,left:0.1},overflow:'ellipsize',valign:'middle'},
+      headStyles:{fontStyle:'bold',fontSize:fs-1.2,textColor:[85,85,85],lineColor:[27,27,27],lineWidth:{bottom:0.35}},
+      alternateRowStyles:{fillColor:[239,237,231]},
+      columnStyles:Object.assign({0:{cellWidth:6,halign:'right',textColor:[150,150,150]},1:{cellWidth:wide?50:58},2:{cellWidth:wide?27:29,halign:'right'},3:{cellWidth:wide?37:38}},
+        Object.fromEntries(s.used.map((_,k)=>[k+4,{halign:'right'}]))),
+      didParseCell:(c)=>{ const raw=c.cell.raw||{}; if(c.section==='body' && (c.column.index===1||c.column.index===2)) c.cell.styles.fontStyle='bold'; if(c.section==='head'){ if(c.column.index>=2) c.cell.styles.halign=c.column.index===3?'left':'right'; return; }
+        if(raw._tot){ c.cell.styles.fontStyle='bold'; c.cell.styles.fillColor=[255,255,255]; c.cell.styles.lineWidth={top:0.35}; c.cell.styles.lineColor=[27,27,27]; return; }
+        if(c.column.index===3 && raw._d!=null){ if(raw._d>=60){ c.cell.styles.textColor=[198,40,40]; c.cell.styles.fontStyle='bold'; } else if(raw._d>=30){ c.cell.styles.textColor=[184,106,0]; c.cell.styles.fontStyle='bold'; } }
+        if(raw._h){ if(raw._z) c.cell.styles.textColor=[196,196,196]; else { const t=tint(raw._h); if(t){ c.cell.styles.fillColor=t.fill; c.cell.styles.textColor=t.text; if(t.bold) c.cell.styles.fontStyle='bold'; } } } } });
+    startY=doc.lastAutoTable.finalY+6.5; });
+  const n=doc.getNumberOfPages(); for(let p=1;p<=n;p++){ doc.setPage(p); doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(150); doc.text(`Dento Art Dental Lab · page ${p}/${n}`,W-M,H-3.5,{align:'right'}); }
+  return doc;
 }
-function printBalances(){
-  const html=printDoc(data.rows,{sort:sortK,cur:curF,logo:new URL('logo.png',location.href).href,now:new Date()});
-  const w=window.open('','_blank');
-  if(!w){ const b=new Blob([html],{type:'text/html'}); location.href=URL.createObjectURL(b); return; }
-  w.document.open(); w.document.write(html.replace('</body>','<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body>')); w.document.close();
+let pdfLibs=null, logoData=null;
+function loadScript(u){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=u; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+function ensurePdfLibs(){ if(!pdfLibs) pdfLibs=loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')).catch(e=>{ pdfLibs=null; throw e; });
+  if(!logoData){ const im=new Image(); im.onload=()=>{ const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight; c.getContext('2d').drawImage(im,0,0); try{ logoData=c.toDataURL('image/png'); }catch(e){} }; im.src='logo.png'; }
+  return pdfLibs; }
+async function printBalances(){
+  const btn=$('#prn'); const ready=!!(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable);
+  if(!ready){ btn.classList.add('busy'); try{ await ensurePdfLibs(); }catch(e){ btn.classList.remove('busy'); alert('Could not load the PDF tool — check the internet and try again.'); return; } btn.classList.remove('busy'); }
+  const now=new Date(), doc=buildBalancesPdf(data.rows,{sort:sortK,cur:curF,logo:logoData,now},window.jspdf.jsPDF);
+  const name=`Dento Art - Balances ${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}-${now.getFullYear()}${curF?' '+curF:''}.pdf`;
+  const file=new File([doc.output('blob')],name,{type:'application/pdf'});
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); return; }catch(e){ if(e.name==='AbortError') return; } }
+  const u=URL.createObjectURL(file), aEl=document.createElement('a'); aEl.href=u; aEl.download=name; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000);
 }
 </script>
 </body>
