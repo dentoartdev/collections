@@ -356,10 +356,15 @@ $('#mko').onclick=()=>mkSetOpen(!mkOpen);
 $('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
 let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null;
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
-function sdMsg(){ const r=sdRow, isDr=/^DR\.?\s/i.test(r.name), nm=r.name.replace(/^DR\.?\s*/i,'').trim();
-  const nInv=document.querySelectorAll('#sdi input:checked').length;
-  let t=`مرحبا ${isDr?'دكتور '+nm:nm} 🌷\nتحية طيبة من Dento Art Dental Lab.\n\nمرفق لحضرتك كشف الحساب (${SDW[sdW]})${nInv?` و${nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'}`:''}.\nالرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
-  if(sdLink) t+= sdLk==='open' ? `\nللدفع أونلاين (تكدر تدفع أي مبلغ): ${sdLink}\n` : `\nللدفع أونلاين (${r.cur} ${fmt(sdLkAmt||r.due)}): ${sdLink}\n`;
+function sdInvSum(){ return [...document.querySelectorAll('#sdi input:checked')].reduce((t,i)=>{ const x=docInfo(decodeURIComponent(i.dataset.f)); return t+(x&&x.bal?x.bal:0); },0); }
+function sdMsg(){ const r=sdRow, nInv=document.querySelectorAll('#sdi input:checked').length;
+  let t=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\nمرفق كشف الحساب (${SDW[sdW]})${nInv?` و${nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'}`:''}.\nالرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
+  if(sdLk!=='none'){ const amt = sdLk==='full' ? r.due : sdLkAmt, inv=sdInvSum();
+    let line = sdLk==='open' ? 'ومرفق لينك دفع مفتوح، تكدرون تدفعون بيه أي مبلغ:'
+      : sdLk==='full' ? `ومرفق لينك دفع بكامل المبلغ المستحق (${r.cur} ${fmt(r.due)}):`
+      : (amt && nInv && Math.abs(amt-inv)<0.01) ? `ومرفق لينك دفع بقيمة ${nInv===1?'الفاتورة':'الفواتير المرفقة'} (${r.cur} ${fmt(amt)}):`
+      : `ومرفق لينك دفع بمبلغ ${r.cur} ${amt?fmt(amt):'…'}:`;
+    t+=`\n${line}\n${sdLink||'(اللينك ينضاف بعد Prepare files)'}\n`; }
   t+=`\nنشكر تعاملكم ويانا 🙏`; return t; }
 function sdReset(){ sdFiles=null; $('#sdgo').textContent='Prepare files'; $('#sdgo').disabled=false; $('#sdr').innerHTML=''; }
 function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; sdSetLk('none'); $('#sdca').value='';
@@ -395,8 +400,8 @@ $('#sdx').onclick=()=>$('#sd').classList.remove('on');
 $('#sd').onclick=e=>{ if(e.target.id==='sd') $('#sd').classList.remove('on'); };
 document.querySelectorAll('#sds button').forEach(b=>b.onclick=()=>{ sdW=b.dataset.w; document.querySelectorAll('#sds button').forEach(x=>x.classList.toggle('on',x===b)); $('#sdm').value=sdMsg(); sdReset(); });
 function sdSetLk(l){ sdLk=l; sdLink=''; sdLkAmt=null; document.querySelectorAll('#sdlk button').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); $('#sdca').style.display=l==='custom'?'':'none'; }
-document.querySelectorAll('#sdlk button').forEach(b=>b.onclick=()=>{ sdSetLk(b.dataset.l); if(sdRow){ $('#sdm').value=sdMsg(); sdReset(); } });
-$('#sdca').oninput=()=>{ sdLink=''; sdReset(); };
+document.querySelectorAll('#sdlk button').forEach(b=>b.onclick=()=>{ sdSetLk(b.dataset.l); if(sdRow){ if(b.dataset.l==='custom'){ const v=sdInvSum(); if(v>0){ $('#sdca').value=v.toFixed(2); sdLkAmt=v; } } $('#sdm').value=sdMsg(); sdReset(); } });
+$('#sdca').oninput=()=>{ sdLink=''; const v=parseFloat(($('#sdca').value||'').replace(/,/g,'')); sdLkAmt=v>0?v:null; $('#sdm').value=sdMsg(); sdReset(); };
 $('#sdgo').onclick=sdGo;
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-send]'); if(!b) return; e.stopPropagation(); sdOpen(decodeURIComponent(b.dataset.send)); },true);
 </script>
