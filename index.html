@@ -101,6 +101,10 @@ header img{height:34px}
 .invs{margin-top:8px;display:flex;flex-direction:column;gap:5px}
 .doc.inv{display:flex;align-items:center;justify-content:space-between;width:100%;border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;text-align:left}
 .doc.inv i{font-style:normal;color:var(--gold);font-weight:800;font-size:12px}
+.doc.inv .il{display:flex;align-items:center;gap:9px;min-width:0}.doc.inv .ir{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.imo{font-size:11px;font-weight:800;color:var(--onGold);background:var(--gold);border-radius:7px;padding:3px 7px;white-space:nowrap}
+.doc.inv em{font-style:normal;font-size:12.5px;font-weight:800;color:var(--txt)}
+.doc.inv .il span{font-size:12.5px;color:var(--mut);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .doc.busy{opacity:.55;pointer-events:none}.doc.ready{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important}
 .docs .none{font-size:12px;color:var(--mut)}
 footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
@@ -200,13 +204,15 @@ function render(){
 }
 const ST={ '3m':'Statement · 3 months','ytd':'Statement · this year','full':'Statement · full' };
 function docInfo(n){ const p=n.split('__'); if(p[1]&&/^statement-(3m|ytd|full)\.pdf$/.test(p[1])){ const k=p[1].slice(10,-4); return {k:'s'+k, o:({'3m':0,'ytd':1,'full':2})[k], label:ST[k], st:true}; }
-  if(p[1]==='inv'&&p[2]) return {k:'i', o:10, label:'Invoice '+p[2].replace(/\.pdf$/,''), st:false}; return null; }
+  if(p[1]==='inv'&&p[2]){ const no=p[2].replace(/\.pdf$/,''), ym=(p[3]||'').replace(/\.pdf$/,''), bal=p[4]?parseFloat(p[4]):null;
+    const mo=/^\d{4}-\d{2}$/.test(ym)? new Date(ym+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short',year:'numeric'}) : '';
+    return {k:'i', o:10, ym:ym, label:'Invoice '+no, mo:mo, bal:bal, st:false}; } return null; }
 function docsHtml(r){ const ds=(r.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.label);
   if(!ds.length) return `<div class="docs"><span class="none">Documents not ready yet</span></div>`;
-  const st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st).sort((a,b)=>a.label.localeCompare(b.label));
+  const st=ds.filter(d=>d.st).sort((a,b)=>a.o-b.o), inv=ds.filter(d=>!d.st).sort((a,b)=>(a.ym||'').localeCompare(b.ym||'')||a.label.localeCompare(b.label));
   const SL={'s3m':'3 Months','sytd':'This Year','sfull':'Full'}, up=ds[0].updated?` <span>· updated ${ds[0].updated}</span>`:'';
   return `<div class="docs"><div class="dl">Statement${up}</div><div class="sts">${st.map(d=>`<button class="doc st" data-f="${encodeURIComponent(d.name)}"><small>PDF</small>${SL[d.k]||d.label}</button>`).join('')}</div>`+
-    (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map(d=>`<button class="doc inv" data-f="${encodeURIComponent(d.name)}">${d.label}<i>PDF ↓</i></button>`).join('')}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
+    (inv.length?`<div class="dl" style="margin-top:12px">Open invoices · ${inv.length}</div><div class="invs">${inv.map(d=>`<button class="doc inv" data-f="${encodeURIComponent(d.name)}"><span class="il">${d.mo?`<b class="imo">${d.mo}</b>`:''}<span>${d.label}</span></span><span class="ir">${d.bal!=null?`<em>${r.cur} ${fmt(d.bal)}</em>`:''}<i>PDF ↓</i></span></button>`).join('')}</div>`:`<div class="dl" style="margin-top:12px">No open invoices</div>`)+`</div>`; }
 const fileCache={};
 function niceName(n){ const p=n.split('__'), i=docInfo(n); return (p[0]+' - '+(i?i.label.replace(' · ',' '):'doc')).replace(/[\\/:*?"<>|]/g,'')+'.pdf'; }
 async function deliver(btn, f){ const file=fileCache[f];
