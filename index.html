@@ -189,7 +189,7 @@ async function loadMamo(force){ if(mamoBusy) return; if(!force && mamoD && Date.
   mamoBusy=false; if(view==='mamo') renderMamo(); }
 function renderMamo(){ const d=mamoD; if(!d) return;
   if(!d.ok){ $('#list').innerHTML=`<div class="msg">Mamo not connected yet (${d.error||'error'})</div>`; return; }
-  const who=x=>{ const t=(x.what||'').split(' - ')[0].trim(); return (t||x.name||'—').replace(/</g,'&lt;'); };
+  const who=x=>{ let t=(x.what||'').split(' - ')[0].split(' | ')[0].trim(); if(/^untitled/i.test(t)) t=''; return (t||x.name||'—').replace(/</g,'&lt;'); };
   const st=x=> x.status==='captured' ? (x.refund>0?'<span class="mst ref">Refunded</span>':'<span class="mst ok">Paid</span>') : `<span class="mst bad">${x.status}</span>`;
   let h=`<div class="mhero"><div class="ml1">Waiting at Mamo → your bank</div><div class="mv1"><small>AED</small>${fmt(d.pending)}</div><div class="ms">${d.upcoming.length?`${d.upcoming.length} transfer${d.upcoming.length>1?'s':''} coming · next ${dshort(d.upcoming[0].date)} (${inDays(d.upcoming[0].date)})`:'Nothing pending — all settled'} · live ${d.at}</div></div>`;
   h+=`<div class="mgrid"><div class="mbox"><div class="k">This month · net AED</div><div class="v"><small>AED</small>${fmt(d.month.gross)}</div></div><div class="mbox"><div class="k">Payments this month</div><div class="v">${d.month.count}</div></div></div>`;
