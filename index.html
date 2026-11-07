@@ -623,7 +623,7 @@ function buildBalancesPdf_(rows, opt, jsPDF){
 let pdfLibs=null, logoData=null;
 function loadScript(u){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=u; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
 function ensurePdfLibs(){ if(!pdfLibs) pdfLibs=loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').then(()=>loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js')).catch(e=>{ pdfLibs=null; throw e; });
-  if(!logoData){ const im=new Image(); im.onload=()=>{ const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight; c.getContext('2d').drawImage(im,0,0); try{ logoData=c.toDataURL('image/png'); }catch(e){} }; im.src='logo.png'; }
+  if(!logoData){ const im=new Image(); im.onload=()=>{ const c=document.createElement('canvas'); c.width=im.naturalWidth; c.height=im.naturalHeight; const g=c.getContext('2d'); g.drawImage(im,0,0); try{ const px=g.getImageData(0,0,c.width,c.height), d=px.data; for(let i=0;i<d.length;i+=4){ d[i]=d[i+1]=d[i+2]=20; } g.putImageData(px,0,0); logoData=c.toDataURL('image/png'); }catch(e){} }; im.src='logo.png'; }
   return pdfLibs; }
 async function printBalances(){
   const btn=$('#prn'); const ready=!!(window.jspdf&&window.jspdf.jsPDF&&window.jspdf.jsPDF.API.autoTable);
