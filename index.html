@@ -281,8 +281,9 @@ async function openDoc(btn){ const f=decodeURIComponent(btn.dataset.f);
   }catch(e){ btn.classList.remove('busy'); btn.innerHTML='Failed — tap again'; setTimeout(()=>btn.innerHTML=lbl,2500); } }
 document.addEventListener('click',e=>{ const b=e.target.closest('.doc'); if(!b) return; e.stopPropagation(); openDoc(b); },true);
 function stamp(){
-  const u = data.updated ? new Date(data.updated) : null;
-  $('#upd').innerHTML = `Live from the tracker<br><b>${u?u.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</b>`;
+  const u = data.synced ? new Date(data.synced) : (data.updated ? new Date(data.updated) : null);
+  let t=''; if(u){ const m=Math.max(0,Math.round((Date.now()-u)/60000)); t = m<1?'just now': m<60? m+' min ago' : m<1440? Math.round(m/60)+' hr ago' : Math.round(m/1440)===1?'1 day ago':Math.round(m/1440)+' days ago'; }
+  $('#upd').innerHTML = `Last update<br><b>${t}</b>`;
 }
 async function refresh(){
   $('#upd').textContent='Updating…';
