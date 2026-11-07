@@ -177,7 +177,7 @@ header img{height:34px}
 .doc.busy{opacity:.55;pointer-events:none}.doc.ready{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important}
 .doc.wa{display:block;width:100%;border:0;border-radius:14px;background:#25d366;color:#05351b;font-weight:800;font-size:14.5px;padding:11px;margin-bottom:12px;text-align:center}.doc.wa small{display:block;font-size:10.5px;font-weight:700;opacity:.75;margin-top:1px}
 .ck{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:5px;font-size:13px;font-weight:700;cursor:pointer}.ck input{width:18px;height:18px;accent-color:#25d366}.ck em{margin-left:auto;font-style:normal;color:var(--mut);font-size:12px}
-.seg4{grid-template-columns:repeat(4,1fr)}.seg4 button{font-size:13px}
+.seg4{grid-template-columns:repeat(4,1fr)}.seg2{grid-template-columns:1fr 1fr}#sd.nomsg #sdm{display:none}.seg4 button{font-size:13px}
 .ta{min-height:150px;resize:vertical;line-height:1.5;font-size:15px}
 .go.wa2{background:#25d366;color:#05351b}
 .doc.inv.hid{display:none}.morei{width:100%;border:1px dashed var(--line);background:transparent;color:var(--gold);border-radius:12px;padding:9px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
@@ -212,7 +212,7 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 <div class="fl">Statement</div><div class="seg" id="sds"><button data-w="3m" class="on">3 Months</button><button data-w="ytd">This Year</button><button data-w="full">Full</button></div>
 <div class="fl" id="sdil">Invoices</div><div id="sdi"></div>
 <div class="fl">Mamo payment link</div><div class="seg seg4" id="sdlk"><button data-l="none" class="on">None</button><button data-l="open">Open</button><button data-l="full">Full</button><button data-l="custom">Custom</button></div><input class="fi" id="sdca" inputmode="decimal" placeholder="Amount" style="display:none;margin-top:6px">
-<div class="fl">Message</div><textarea class="fi ta" id="sdm" dir="auto"></textarea>
+<div class="fl">Send</div><div class="seg seg2" id="sdmm"><button data-m="1" class="on">With message</button><button data-m="0">Files only</button></div><textarea class="fi ta" id="sdm" dir="auto" style="margin-top:8px"></textarea>
 <button class="go wa2" id="sdgo">Prepare files</button><div class="hint" id="sdh">Your phone's share menu opens → choose WhatsApp → choose the doctor.</div><div id="sdr"></div>
 </div></div>
 <div class="sheet" id="pm"><div class="sh">
@@ -415,7 +415,7 @@ $('#mk').onclick=e=>{ if(e.target.id==='mk') $('#mk').classList.remove('on'); };
 document.querySelectorAll('#mkc button').forEach(b=>b.onclick=()=>mkSetCur(b.dataset.c));
 $('#mko').onclick=()=>mkSetOpen(!mkOpen);
 $('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
-let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null;
+let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null, sdWithMsg=true;
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
 function sdInvSum(){ return [...document.querySelectorAll('#sdi input:checked')].reduce((t,i)=>{ const x=docInfo(decodeURIComponent(i.dataset.f)); return t+(x&&x.bal?x.bal:0); },0); }
 function sdMsg(){ const r=sdRow, nInv=document.querySelectorAll('#sdi input:checked').length;
@@ -428,7 +428,7 @@ function sdMsg(){ const r=sdRow, nInv=document.querySelectorAll('#sdi input:chec
     t+=`\n${line}\n${sdLink||'(اللينك ينضاف بعد Prepare files)'}\n`; }
   t+=`\nنشكر تعاملكم ويانا 🙏`; return t; }
 function sdReset(){ sdFiles=null; $('#sdgo').textContent='Prepare files'; $('#sdgo').disabled=false; $('#sdr').innerHTML=''; }
-function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; sdSetLk('none'); $('#sdca').value='';
+function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; sdSetLk('none'); $('#sdca').value=''; sdSetMsg(true);
   $('#sdt').textContent=sdRow.name; document.querySelectorAll('#sds button').forEach(b=>b.classList.toggle('on',b.dataset.w===sdW));
   const inv=(sdRow.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.k==='i').sort((a,b)=>(a.ym||'').localeCompare(b.ym||''));
   $('#sdil').style.display=inv.length?'':'none';
@@ -440,10 +440,10 @@ async function sdFetch(f){ if(fileCache[f]) return fileCache[f];
   const bin=atob(d.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
   return fileCache[f]=new File([u8],niceName(f),{type:'application/pdf'}); }
 async function sdGo(){
-  if(sdFiles){ const text=$('#sdm').value; try{ await navigator.clipboard.writeText(text); }catch(e){}
-    try{ if(navigator.canShare && navigator.canShare({files:sdFiles})) await navigator.share({files:sdFiles, text}); else throw new Error('noshare'); $('#sdr').innerHTML='<div class="hint">Shared ✓ — the message is also copied; if WhatsApp didn’t include it, just paste it.</div>'; }
+  if(sdFiles){ const text=sdWithMsg?$('#sdm').value:''; if(text){ try{ await navigator.clipboard.writeText(text); }catch(e){} }
+    try{ if(navigator.canShare && navigator.canShare({files:sdFiles})) await navigator.share(text?{files:sdFiles, text}:{files:sdFiles}); else throw new Error('noshare'); $('#sdr').innerHTML=text?'<div class="hint">Shared ✓ — the message is also copied; if WhatsApp didn’t include it, just paste it.</div>':'<div class="hint">Shared ✓ (files only)</div>'; }
     catch(e){ if(e.name==='AbortError') return; sdFiles.forEach(f=>{ const u=URL.createObjectURL(f),a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); });
-      location.href='https://wa.me/?text='+encodeURIComponent(text); }
+      if(text) location.href='https://wa.me/?text='+encodeURIComponent(text); }
     return; }
   $('#sdgo').disabled=true; $('#sdgo').textContent='Preparing…'; $('#sdr').innerHTML='';
   try{
@@ -464,6 +464,8 @@ function sdSetLk(l){ sdLk=l; sdLink=''; sdLkAmt=null; document.querySelectorAll(
 document.querySelectorAll('#sdlk button').forEach(b=>b.onclick=()=>{ sdSetLk(b.dataset.l); if(sdRow){ if(b.dataset.l==='custom'){ const v=sdInvSum(); if(v>0){ $('#sdca').value=v.toFixed(2); sdLkAmt=v; } } $('#sdm').value=sdMsg(); sdReset(); } });
 $('#sdca').oninput=()=>{ sdLink=''; const v=parseFloat(($('#sdca').value||'').replace(/,/g,'')); sdLkAmt=v>0?v:null; $('#sdm').value=sdMsg(); sdReset(); };
 $('#sdgo').onclick=sdGo;
+function sdSetMsg(on){ sdWithMsg=on; document.querySelectorAll('#sdmm button').forEach(b=>b.classList.toggle('on',(b.dataset.m==='1')===on)); $('#sd').classList.toggle('nomsg',!on); if(sdFiles) $('#sdr').innerHTML=''; }
+document.querySelectorAll('#sdmm button').forEach(b=>b.onclick=()=>sdSetMsg(b.dataset.m==='1'));
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-send]'); if(!b) return; e.stopPropagation(); sdOpen(decodeURIComponent(b.dataset.send)); },true);
 // ===== Overview =====
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
