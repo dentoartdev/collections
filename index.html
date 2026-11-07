@@ -103,6 +103,7 @@ header img{height:34px}
 .go{width:100%;margin-top:16px;border:0;border-radius:14px;background:var(--gold);color:var(--onGold);font:inherit;font-weight:800;font-size:15px;padding:14px;cursor:pointer}.go:disabled{opacity:.5}
 .res{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}.res .u{font-size:17px;font-weight:800;color:var(--gold);word-break:break-all}.res .acts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}.res .acts button{border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:10px;padding:10px 0;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
 .err{color:var(--red);font-size:13px;margin-top:10px}
+.via{display:block;font-size:10.5px;color:var(--mut);opacity:.85;margin-top:1px;letter-spacing:.2px}
 .mst{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;border-radius:6px;padding:2px 6px}.mst.ok{background:rgba(62,207,142,.15);color:var(--green)}.mst.bad{background:rgba(239,83,80,.15);color:var(--red)}.mst.ref{background:rgba(240,162,74,.15);color:var(--orange)}
 .grp{font-size:10.5px;letter-spacing:1.8px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:10px 2px 2px}
 .paid{font-weight:800;font-size:16px;color:var(--green);text-align:right;white-space:nowrap}.paid small{font-size:11px;color:var(--mut);font-weight:700;margin-right:3px}
@@ -213,7 +214,7 @@ function renderPays(rows){
   let html='', last='';
   list.forEach((r,i)=>{ const g=grp(r.d); if(g!==last){ html+=`<div class="grp">${g}</div>`; last=g; }
     const ago = r.d===0?'today':r.d===1?'yesterday':r.d+' days ago';
-    html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}</div><span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
+    html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}${r.via?`<span class="via">${r.via}</span>`:''}</div><span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
   $('#list').innerHTML = html || '<div class="empty">No payments</div>';
 }
 let mamoD=null, mamoAt=0, mamoBusy=false;
