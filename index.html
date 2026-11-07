@@ -115,12 +115,12 @@ header img{height:34px}
 .kt{background:var(--card2);border-radius:12px;padding:10px 8px}.kt .l{font-size:10.5px;color:var(--mut);font-weight:700}.kt .v{font-size:16px;font-weight:800;margin-top:3px;white-space:nowrap}.kt .v small{font-size:10px;color:var(--mut);margin-right:2px;font-weight:700}
 .dl2{margin-top:9px;font-size:12px;color:var(--mut)}.dl2 b{font-weight:800}.up{color:var(--green)}.dn{color:var(--red)}
 .lg{display:flex;gap:12px;font-size:11.5px;color:var(--mut);font-weight:700}.lg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.chart svg{width:100%;height:auto;display:block}.chart .tip{font-size:12px;color:var(--mut);text-align:center;margin-top:6px;min-height:16px}.chart .tip b{color:var(--txt)}
+.chart svg{width:100%;height:auto;max-height:260px;display:block}.chart .tip{font-size:12px;color:var(--mut);text-align:center;margin-top:6px;min-height:16px}.chart .tip b{color:var(--txt)}
 .ci{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:13px}.ci:first-of-type{border-top:0;padding-top:2px}.ci .t{font-weight:700}.ci .t small{display:block;font-size:11px;color:var(--mut);font-weight:600;margin-top:1px}.ci .a{font-weight:800;white-space:nowrap}
 .agebar{display:flex;gap:2px;height:14px;border-radius:7px;overflow:hidden;margin:2px 0 10px}.agebar span{display:block;height:100%}
 .ar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);cursor:pointer;font-size:13px}.ar:first-of-type{border-top:0}
 .ar .d{width:10px;height:10px;border-radius:3px}.ar .n{font-weight:700}.ar .n small{color:var(--mut);font-weight:600;margin-left:5px}.ar .a{text-align:right;font-weight:800;white-space:nowrap}.ar .a small{display:block;font-size:10.5px;color:var(--mut);font-weight:700}
-.al{display:none;padding:0 0 8px 18px}.al.on{display:block}.al div{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--mut)}.al div b{color:var(--txt);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
+.al{display:none;padding:0 0 8px 18px}.al.on{display:block}.al div{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--mut)}.al div span{white-space:nowrap}.al div b{color:var(--txt);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
 .addp{border:1px solid var(--gold);background:transparent;color:var(--gold);border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
 .pr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;cursor:pointer}.pr:first-of-type{border-top:0}
 .pr .n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pr .a{font-weight:800;text-align:right;white-space:nowrap}.pr .w{font-size:11.5px;color:var(--mut)}.pr .s{text-align:right}
@@ -453,7 +453,7 @@ function promStatus(p){ const r=(data.rows||[]).find(x=>x.name===p.name); const 
   if(p.done) return {k:'ok',t:'Kept'};
   if(r && r.lastPay && r.lastPay>=p.created) return {k:'ok',t:'Paid '+r.lastPay.slice(8,10)+'/'+r.lastPay.slice(5,7)};
   const n=dayDiff(p.date); if(n<0) return {k:'late',t:(-n)+'d late'}; if(n<=7) return {k:'soon',t:n===0?'Today':n===1?'Tomorrow':'In '+n+' days'}; return {k:'later',t:'In '+n+' days'}; }
-function chartSvg(m){ const W=320,H=150,pl=4,pr=4,pt=8,pb=22, n=m.length, gw=(W-pl-pr)/n, bw=Math.min(16,(gw-10)/2);
+function chartSvg(m){ const W=320,H=150,pl=4,pr=4,pt=16,pb=22, n=m.length, gw=(W-pl-pr)/n, bw=Math.min(16,(gw-10)/2);
   const mx=Math.max(1,...m.map(x=>Math.max(x.invoiced,x.collected))), y=v=>pt+(H-pt-pb)*(1-v/mx), base=H-pb;
   let g=''; [0.5,1].forEach(f=>{ const yy=y(mx*f); g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${W-pr}" y="${yy-3}" text-anchor="end" font-size="8.5" fill="var(--mut)">${kfmt(mx*f)}</text>`; });
   const bar=(x,v,c)=>{ const h=Math.max(2,base-y(v)); return `<path d="M${x},${base} v${-(h-4)} q0,-4 4,-4 h${bw-8} q4,0 4,4 v${h-4} z" fill="${c}"/>`; };
