@@ -134,6 +134,7 @@ header img{height:34px}
 .doc.busy{opacity:.55;pointer-events:none}.doc.ready{background:var(--green)!important;color:#fff!important;border-color:var(--green)!important}
 .doc.wa{display:block;width:100%;border:0;border-radius:14px;background:#25d366;color:#05351b;font-weight:800;font-size:14.5px;padding:11px;margin-bottom:12px;text-align:center}.doc.wa small{display:block;font-size:10.5px;font-weight:700;opacity:.75;margin-top:1px}
 .ck{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:5px;font-size:13px;font-weight:700;cursor:pointer}.ck input{width:18px;height:18px;accent-color:#25d366}.ck em{margin-left:auto;font-style:normal;color:var(--mut);font-size:12px}
+.seg4{grid-template-columns:repeat(4,1fr)}.seg4 button{font-size:13px}
 .ta{min-height:150px;resize:vertical;line-height:1.5;font-size:15px}
 .go.wa2{background:#25d366;color:#05351b}
 .docs .none{font-size:12px;color:var(--mut)}
@@ -166,7 +167,7 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 <button class="x" id="sdx">✕</button><h3 id="sdt">Send on WhatsApp</h3>
 <div class="fl">Statement</div><div class="seg" id="sds"><button data-w="3m" class="on">3 Months</button><button data-w="ytd">This Year</button><button data-w="full">Full</button></div>
 <div class="fl" id="sdil">Invoices</div><div id="sdi"></div>
-<label class="ck"><input type="checkbox" id="sdl"> Add Mamo payment link (full balance)</label>
+<div class="fl">Mamo payment link</div><div class="seg seg4" id="sdlk"><button data-l="none" class="on">None</button><button data-l="open">Open</button><button data-l="full">Full</button><button data-l="custom">Custom</button></div><input class="fi" id="sdca" inputmode="decimal" placeholder="Amount" style="display:none;margin-top:6px">
 <div class="fl">Message</div><textarea class="fi ta" id="sdm" dir="auto"></textarea>
 <button class="go wa2" id="sdgo">Prepare files</button><div class="hint" id="sdh">Your phone's share menu opens → choose WhatsApp → choose the doctor.</div><div id="sdr"></div>
 </div></div>
@@ -340,7 +341,7 @@ async function mkCreate(){ const n=$('#mkn').value.trim(), a=parseFloat(($('#mka
   try{ const q=FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mklink=1&title='+encodeURIComponent(n)+'&cur='+mkCur+(mkOpen?'&open=1':'&amount='+a);
     const d=await jsonp(q); if(!d.ok) throw new Error(d.error||'error'); const L=d.link, link=L.short||L.url;
     const txt=`Dento Art Dental Lab – payment link for ${n}${L.amount?` (${L.cur} ${fmt(L.amount)})`:''}:\n${link}`;
-    $('#mkr').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">${L.amount?`${L.cur} ${fmt(L.amount)}`:`Open amount · ${L.cur}`} · ready</div><div class="u">${link}</div><div class="acts"><button id="mkcp">Copy</button><button id="mksh">Share</button><button id="mkop">Open</button></div></div>`;
+    $('#mkr').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">${L.amount?`${L.cur} ${fmt(L.amount)}`:`Open amount · ${L.cur}`} · ${d.reused?'existing open link':'ready'}</div><div class="u">${link}</div><div class="acts"><button id="mkcp">Copy</button><button id="mksh">Share</button><button id="mkop">Open</button></div></div>`;
     $('#mkcp').onclick=async()=>{ try{ await navigator.clipboard.writeText(link); $('#mkcp').textContent='Copied ✓'; }catch(e){ prompt('Copy the link',link); } };
     $('#mksh').onclick=()=>{ if(navigator.share) navigator.share({text:txt}).catch(()=>{}); else location.href='https://wa.me/?text='+encodeURIComponent(txt); };
     $('#mkop').onclick=()=>window.open(L.url,'_blank');
@@ -353,15 +354,15 @@ $('#mk').onclick=e=>{ if(e.target.id==='mk') $('#mk').classList.remove('on'); };
 document.querySelectorAll('#mkc button').forEach(b=>b.onclick=()=>mkSetCur(b.dataset.c));
 $('#mko').onclick=()=>mkSetOpen(!mkOpen);
 $('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
-let sdRow=null, sdW='3m', sdFiles=null, sdLink='';
+let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null;
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
 function sdMsg(){ const r=sdRow, isDr=/^DR\.?\s/i.test(r.name), nm=r.name.replace(/^DR\.?\s*/i,'').trim();
   const nInv=document.querySelectorAll('#sdi input:checked').length;
   let t=`مرحبا ${isDr?'دكتور '+nm:nm} 🌷\nتحية طيبة من Dento Art Dental Lab.\n\nمرفق لحضرتك كشف الحساب (${SDW[sdW]})${nInv?` و${nInv===1?'الفاتورة المفتوحة':'الفواتير المفتوحة ('+nInv+')'}`:''}.\nالرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
-  if(sdLink) t+=`\nللدفع أونلاين: ${sdLink}\n`;
+  if(sdLink) t+= sdLk==='open' ? `\nللدفع أونلاين (تكدر تدفع أي مبلغ): ${sdLink}\n` : `\nللدفع أونلاين (${r.cur} ${fmt(sdLkAmt||r.due)}): ${sdLink}\n`;
   t+=`\nنشكر تعاملكم ويانا 🙏`; return t; }
 function sdReset(){ sdFiles=null; $('#sdgo').textContent='Prepare files'; $('#sdgo').disabled=false; $('#sdr').innerHTML=''; }
-function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; $('#sdl').checked=false;
+function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; sdSetLk('none'); $('#sdca').value='';
   $('#sdt').textContent=sdRow.name; document.querySelectorAll('#sds button').forEach(b=>b.classList.toggle('on',b.dataset.w===sdW));
   const inv=(sdRow.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.k==='i').sort((a,b)=>(a.ym||'').localeCompare(b.ym||''));
   $('#sdil').style.display=inv.length?'':'none';
@@ -380,8 +381,10 @@ async function sdGo(){
     return; }
   $('#sdgo').disabled=true; $('#sdgo').textContent='Preparing…'; $('#sdr').innerHTML='';
   try{
-    if($('#sdl').checked && !sdLink){ const q=FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mklink=1&title='+encodeURIComponent(sdRow.name)+'&cur='+(['USD','AED','SAR'].includes(sdRow.cur)?sdRow.cur:'USD')+'&amount='+sdRow.due.toFixed(2);
-      const d=await jsonp(q); if(!d.ok) throw new Error('Mamo: '+(d.error||'')); sdLink=d.link.short||d.link.url; $('#sdm').value=sdMsg(); }
+    if(sdLk!=='none' && !sdLink){ let q=FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mklink=1&title='+encodeURIComponent(sdRow.name)+'&cur='+(['USD','AED','SAR'].includes(sdRow.cur)?sdRow.cur:'USD');
+      if(sdLk==='open') q+='&open=1'; else { const a = sdLk==='full' ? sdRow.due : parseFloat(($('#sdca').value||'').replace(/,/g,'')); if(!(a>=2)) throw new Error('Enter the custom amount (min 2)'); sdLkAmt=a; q+='&amount='+a.toFixed(2); }
+      const d=await jsonp(q); if(!d.ok) throw new Error('Mamo: '+(d.error||'')); sdLink=d.link.short||d.link.url; $('#sdm').value=sdMsg();
+      if(d.reused) $('#sdr').innerHTML='<div class="hint">Using this doctor’s existing open link ✓</div>'; }
     const st=(sdRow.docs||[]).find(d=>d.name.endsWith('__statement-'+sdW+'.pdf'));
     const names=(st?[st.name]:[]).concat([...document.querySelectorAll('#sdi input:checked')].map(i=>decodeURIComponent(i.dataset.f)));
     if(!names.length) throw new Error('no documents');
@@ -391,7 +394,9 @@ async function sdGo(){
 $('#sdx').onclick=()=>$('#sd').classList.remove('on');
 $('#sd').onclick=e=>{ if(e.target.id==='sd') $('#sd').classList.remove('on'); };
 document.querySelectorAll('#sds button').forEach(b=>b.onclick=()=>{ sdW=b.dataset.w; document.querySelectorAll('#sds button').forEach(x=>x.classList.toggle('on',x===b)); $('#sdm').value=sdMsg(); sdReset(); });
-$('#sdl').onchange=()=>{ if(!$('#sdl').checked){ sdLink=''; $('#sdm').value=sdMsg(); } sdReset(); };
+function sdSetLk(l){ sdLk=l; sdLink=''; sdLkAmt=null; document.querySelectorAll('#sdlk button').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); $('#sdca').style.display=l==='custom'?'':'none'; }
+document.querySelectorAll('#sdlk button').forEach(b=>b.onclick=()=>{ sdSetLk(b.dataset.l); if(sdRow){ $('#sdm').value=sdMsg(); sdReset(); } });
+$('#sdca').oninput=()=>{ sdLink=''; sdReset(); };
 $('#sdgo').onclick=sdGo;
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-send]'); if(!b) return; e.stopPropagation(); sdOpen(decodeURIComponent(b.dataset.send)); },true);
 </script>
