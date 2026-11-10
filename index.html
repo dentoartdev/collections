@@ -133,8 +133,6 @@ header img{height:34px}
 .tt{display:flex;justify-content:space-between;gap:8px;font-size:13.5px}.tt .n{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tt .a{font-weight:800;white-space:nowrap}
 .ta2{font-size:13px;margin-top:3px;line-height:1.45}.tw{font-size:11.5px;color:var(--mut);margin-top:3px}
 .tdel{margin-top:6px;border:1px solid var(--line);background:var(--card2);color:var(--mut);border-radius:8px;padding:4px 10px;font:inherit;font-size:11.5px;cursor:pointer}
-.hold{display:inline-block;margin-left:6px;font-size:9.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--red);background:rgba(239,83,80,.13);border-radius:5px;padding:1px 5px;vertical-align:1px}
-.chip.hchip{color:var(--red)}.chip.hchip.on{background:rgba(239,83,80,.16);border-color:transparent}
 .p-new{background:rgba(57,135,229,.16);color:var(--inv);margin-left:4px;vertical-align:1px}
 .td{cursor:pointer}.tx{display:none;margin-top:8px}.td.ex .tx{display:block}
 .tl{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:9px 0 3px}.tv{font-size:12.5px;line-height:1.5}
@@ -271,12 +269,6 @@ const VIA_SVG={
  bank:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M1.5 6 8 2l6.5 4z"/><path d="M3.5 7v5M6.5 7v5M9.5 7v5M12.5 7v5M1.5 14h13"/></svg>',
  cheque:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3.5" width="14" height="9" rx="1.5"/><path d="M3.5 10.2c1-1.4 1.6-1.4 2.2 0s1.2 1.4 2.2 0M10 7h3M10 9.5h3"/></svg>'};
 function viaIcon(v){ const t=v.toLowerCase(); return VIA_SVG[t.startsWith('mamo')?'mamo':t.startsWith('cash')?'cash':t.startsWith('bank')?'bank':t.startsWith('cheque')?'cheque':'']||''; }
-const MI={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-function holdDays(r){   // "stop work" rule (Abood, 10 Nov 2026): unpaid 60+ days AND oldest unpaid month 60+ days old
-  if(!(r.due>0.004)) return 0; const inv=invSince(r), dd=r.d!==null?r.d:(inv?since(inv):null); if(dd===null||dd<60) return 0;
-  const ms=(r.months||[]).filter(m=>m[1]>0); if(!ms.length) return dd; const lb=ms[ms.length-1][0]; const m=/^([A-Z][a-z]{2})\D*'?(\d{2})/.exec(lb);
-  if(m && m[1] in MI){ const d0=new Date(2000+ +m[2], MI[m[1]], 15), age=Math.floor((Date.now()-d0)/864e5); return age>=60?dd:0; }
-  return dd; }
 function renderPays(rows){
   const q=$('#q').value.trim().toLowerCase();
   const pd = r => r.lastPay || dmy(r.lastPayText) || '';
@@ -324,13 +316,13 @@ function render(){
   if(view==='mamo'){ if(mamoD) renderMamo(); loadMamo(false); stamp(); return; }
   if(view==='pay'){ renderPays(rows); stamp(); return; }
   ensurePdfLibs().catch(()=>{});
-  const sorts=[['value','Highest'],['days','Longest unpaid']]; if(sortK==='name') sortK='value'; const nHold=rows.filter(r=>holdDays(r)).length;
+  const sorts=[['value','Highest'],['days','Longest unpaid']]; if(sortK==='name') sortK='value';
   const PRN='<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 6V1.8h8V6"/><rect x="1.5" y="6" width="13" height="5.5" rx="1.2"/><path d="M4 9.5h8v4.7H4z" fill="var(--card)"/></svg>';
-  $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (nHold?`<span class="chip hchip ${holdF?'on':''}" data-h="1">⛔ Hold ${nHold}</span>`:'') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'') + `<span class="chip pchip" id="prn" title="Print A4" aria-label="Print">${PRN}<b>Print</b></span>`;
-  document.querySelectorAll('.chip[data-k],.chip[data-x],.chip[data-h]').forEach(el=>el.onclick=()=>{ if(el.dataset.h){holdF=!holdF}else if(el.dataset.x){curF=null}else{sortK=el.dataset.k} render(); });
+  $('#sorts').innerHTML = sorts.map(([k,l])=>`<span class="chip ${sortK===k?'on':''}" data-k="${k}">${l}</span>`).join('') + (curF?`<span class="chip on" data-x="1">${curF} ✕</span>`:'') + `<span class="chip pchip" id="prn" title="Print A4" aria-label="Print">${PRN}<b>Print</b></span>`;
+  document.querySelectorAll('.chip[data-k],.chip[data-x]').forEach(el=>el.onclick=()=>{ if(el.dataset.x){curF=null}else{sortK=el.dataset.k} render(); });
   $('#prn').onclick=printBalances;
   const q=$('#q').value.trim().toLowerCase();
-  let list = rows.filter(r=>(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q))&&(!holdF||holdDays(r)));
+  let list = rows.filter(r=>(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q)));
   if(sortK==='value') list.sort((a,b)=>b.due*TO_USD[b.cur]-a.due*TO_USD[a.cur]);
   if(sortK==='days'){ const k=r=> r.d!==null? r.d : (invSince(r)? since(invSince(r)) : 1e9); list.sort((a,b)=>k(b)-k(a)); }
   if(sortK==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
@@ -342,7 +334,7 @@ function render(){
     const lp = (r.d!==null) ? `Last paid <b>${r.lastPayText}</b>${r.lastAmt?` · ${fmt(r.lastAmt)}`:''}` : (inv? `No payment yet · invoiced since <b>${inv.split('-').reverse().join('/')}</b>` : 'No payment yet');
     const ms=(r.months||[]).filter(m=>m[1]>0), mx=Math.max(1,...ms.map(m=>m[1])), cr=(r.months||[]).filter(m=>m[1]<0);
     const det=`<div class="det">${ms.map(m=>`<div class="mrow"><span class="ml">${m[0]}</span><span class="mb"><i style="width:${Math.max(4,Math.round(m[1]/mx*100))}%"></i></span><span class="mv">${fmt(m[1])}</span></div>`).join('')}${cr.map(m=>`<div class="mrow cr"><span class="ml">Credit</span><span class="mb"></span><span class="mv">${fmt(m[1])}</span></div>`).join('')}<div class="dsum">${ms.length} month${ms.length===1?'':'s'} unpaid${ms.length?` · oldest <b>${ms[ms.length-1][0]}</b>`:''}</div>${docsHtml(r)}</div>`;
-    return `<div class="row ${openSet.has(r.name)?'open':''}" data-n="${encodeURIComponent(r.name)}" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm"><span class="chev">›</span>${r.name.replace(/</g,'&lt;')}${holdDays(r)?'<span class="hold" title="Unpaid 60+ days — get a payment before new work">⛔ Hold</span>':''}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}${r.cur!=='AED'?`<span class="aed">≈ AED ${aed(r.due,r.cur)}</span>`:''}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span>${det}</div>`;
+    return `<div class="row ${openSet.has(r.name)?'open':''}" data-n="${encodeURIComponent(r.name)}" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm"><span class="chev">›</span>${r.name.replace(/</g,'&lt;')}</div><div class="amt"><small>${r.cur}</small>${fmt(r.due)}${r.cur!=='AED'?`<span class="aed">≈ AED ${aed(r.due,r.cur)}</span>`:''}</div><div class="meta">${lp}</div><span class="badge ${cls}">${badge}</span>${det}</div>`;
   }).join('') : '<div class="empty">No matches</div>';
   document.querySelectorAll('#list .row[data-n]').forEach(el=>el.onclick=()=>{ const n=decodeURIComponent(el.dataset.n), was=openSet.has(n); openSet.clear(); document.querySelectorAll('#list .row.open').forEach(x=>x.classList.remove('open')); if(!was){ openSet.add(n); el.classList.add('open'); const t=el.getBoundingClientRect().top; if(t<0||t>innerHeight*0.6) el.scrollIntoView({block:'start',behavior:'smooth'}); } });
   stamp();
@@ -438,7 +430,7 @@ $('#mk').onclick=e=>{ if(e.target.id==='mk') $('#mk').classList.remove('on'); };
 document.querySelectorAll('#mkc button').forEach(b=>b.onclick=()=>mkSetCur(b.dataset.c));
 $('#mko').onclick=()=>mkSetOpen(!mkOpen);
 $('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
-let sdEdited=false; let holdF=false;
+let sdEdited=false;
 function sdSetM(){ const m=$('#sdm'), PH='(اللينك ينضاف بعد Prepare files)'; if(!sdEdited){ m.value=sdMsg(); return; } if(sdLink && m.value.includes(PH)) m.value=m.value.replace(PH,sdLink); }
 let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null, sdWithMsg=true;
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
