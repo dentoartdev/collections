@@ -429,19 +429,16 @@ function sdSetM(){ const m=$('#sdm'), PH='(اللينك ينضاف بعد Prepar
 let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null, sdWithMsg=true;
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
 function sdInvSum(){ return [...document.querySelectorAll('#sdi input:checked')].reduce((t,i)=>{ const x=docInfo(decodeURIComponent(i.dataset.f)); return t+(x&&x.bal?x.bal:0); },0); }
-function sdMsg(){ const r=sdRow, nInv=document.querySelectorAll('#sdi input:checked').length;
-  const AR=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  const mons=[...document.querySelectorAll('#sdi input:checked')].map(i=>docInfo(decodeURIComponent(i.dataset.f))).filter(x=>x&&x.ym).map(x=>`${AR[+x.ym.slice(5)-1]} ${x.ym.slice(0,4)} (${r.cur} ${fmt(x.bal||0)})`);
-  const invTxt=nInv?(nInv===1?'فاتورة شهر ':'فواتير أشهر ')+(mons.length?mons.join('، '):'')+'':'';
-  const att=sdW==='none' ? (invTxt?`مرفق ${invTxt}.`:'') : `مرفق كشف الحساب (${SDW[sdW]})${invTxt?` و${invTxt}`:''}.`;
-  let t=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\n${att}${att?'\n':''}الرصيد المستحق: ${r.cur} ${fmt(r.due)}\n`;
-  if(sdLk!=='none'){ const amt = sdLk==='full' ? r.due : sdLkAmt, inv=sdInvSum();
-    let line = sdLk==='open' ? 'ومرفق لينك دفع مفتوح، تكدرون تدفعون بيه أي مبلغ:'
-      : sdLk==='full' ? `ومرفق لينك دفع بكامل المبلغ المستحق (${r.cur} ${fmt(r.due)}):`
-      : (amt && nInv && Math.abs(amt-inv)<0.01) ? `ومرفق لينك دفع بقيمة ${nInv===1?'الفاتورة':'الفواتير المرفقة'} (${r.cur} ${fmt(amt)}):`
-      : `ومرفق لينك دفع بمبلغ ${r.cur} ${amt?fmt(amt):'…'}:`;
-    t+=`\n${line}\n${sdLink||'(اللينك ينضاف بعد Prepare files)'}\n`; }
-  t+=`\nنشكر تعاملكم ويانا 🙏`; return t; }
+function sdMsg(){ const r=sdRow, ch=[...document.querySelectorAll('#sdi input:checked')].map(i=>docInfo(decodeURIComponent(i.dataset.f))).filter(Boolean), n=ch.length;
+  const CW={USD:'دولار',SAR:'ريال',AED:'درهم',OMR:'ريال عماني'}, cw=CW[r.cur]||r.cur, A=x=>Math.abs(x-Math.round(x))<0.005?Math.round(x).toLocaleString('en-US'):x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const nos=ch.map(x=>x.label.replace('Invoice ','')).join('، '), sum=ch.reduce((t,x)=>t+(x.bal||0),0);
+  let t='مرحبا ،\n';
+  if(n) t+=`مرفقة ${n===1?'فاتورة رقم':'فواتير أرقام'} ${nos} بمبلغ ${A(sum)} ${cw}.\n`;
+  if(sdW!=='none') t+=`${n?'ومرفق':'مرفق'} كشف الحساب (${SDW[sdW]})${n&&Math.abs(sum-r.due)<0.01?'':` — الرصيد المستحق ${A(r.due)} ${cw}`}.\n`;
+  if(sdLk!=='none'){ const amt = sdLk==='full' ? r.due : sdLkAmt;
+    const line = sdLk==='open' ? 'ولينك الدفع (تكدرون تدفعون أي مبلغ):' : `ولينك الدفع بمبلغ ${amt?A(amt):'…'} ${cw}:`;
+    t+=`${line}\n${sdLink||'(اللينك ينضاف بعد Prepare files)'}\n`; }
+  return t+' وشكراً الك، ويومك سعيد 🙏🏼'; }
 function sdReset(){ sdFiles=null; $('#sdgo').textContent='Prepare files'; $('#sdgo').disabled=false; $('#sdr').innerHTML=''; }
 function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) return; sdW='3m'; sdLink=''; sdSetLk('none'); $('#sdca').value=''; sdSetMsg(true);
   $('#sdt').textContent=sdRow.name; document.querySelectorAll('#sds button').forEach(b=>b.classList.toggle('on',b.dataset.w===sdW));
