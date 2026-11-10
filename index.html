@@ -249,7 +249,7 @@ const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFracti
 const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} }, del(k){ try{localStorage.removeItem(k)}catch(e){} } };
 
 function jsonp(url){ return new Promise((res,rej)=>{ const cb='cb'+Date.now()+Math.floor(Math.random()*1e4); const s=document.createElement('script');
-  const t=setTimeout(()=>{cleanup();rej(new Error('timeout'))},20000);
+  const t=setTimeout(()=>{cleanup();rej(new Error('timeout'))},45000);
   function cleanup(){clearTimeout(t);delete window[cb];s.remove()}
   window[cb]=d=>{cleanup();res(d)}; s.onerror=()=>{cleanup();rej(new Error('network'))};
   s.src=url+(url.includes('?')?'&':'?')+'callback='+cb; document.head.appendChild(s); }); }
@@ -368,10 +368,13 @@ function stamp(){
   let t=''; if(u){ const m=Math.max(0,Math.round((Date.now()-u)/60000)); t = m<1?'just now': m<60? m+' min ago' : m<1440? Math.round(m/60)+' hr ago' : Math.round(m/1440)===1?'1 day ago':Math.round(m/1440)+' days ago'; }
   $('#upd').innerHTML = `Last update<br><b>${t}</b>`;
 }
-async function refresh(){
-  $('#upd').textContent='Updating…';
-  try{ data = await load(store.get('pin')); render(); }
-  catch(e){ if(e.message==='bad_pin'){ store.del('pin'); showPin(); } else { $('#upd').textContent='Offline – tap ↻'; } }
+let rfT=null, rfBusy=false;
+async function refresh(tries=0){   // never show "offline": keep the last data on screen and retry quietly
+  if(rfBusy && !tries) return; rfBusy=true; clearTimeout(rfT);
+  if(!data) $('#upd').textContent='Updating…';
+  try{ data = await load(store.get('pin')); rfBusy=false; store.set('cache', JSON.stringify(data)); render(); }
+  catch(e){ if(e.message==='bad_pin'){ rfBusy=false; store.del('pin'); store.del('cache'); showPin(); return; }
+    rfT=setTimeout(()=>refresh(tries+1), Math.min(60000, 5000*(tries+1))); }
 }
 function showPin(){
   $('#app').hidden=true; $('#pin').style.display='flex'; pinBuf=''; drawDots();
@@ -395,7 +398,7 @@ function applyTheme(t){ if(t==='light') document.documentElement.dataset.theme='
 applyTheme(store.get('theme')==='light'?'light':'dark');
 $('#th').onclick=()=>{ const t=document.documentElement.dataset.theme==='light'?'dark':'light'; store.set('theme',t); applyTheme(t); };
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && store.get('pin')) refresh(); });
-if(store.get('pin')){ $('#pin').style.display='none'; $('#app').hidden=false; refresh(); } else showPin();
+if(store.get('pin')){ $('#pin').style.display='none'; $('#app').hidden=false; setTimeout(()=>{ try{ const c=store.get('cache'); if(c && !data){ data=JSON.parse(c); render(); } }catch(e){ data=null; } },0); refresh(); } else showPin();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 let mkCur='USD', mkOpen=false;
 function mkOpenSheet(){ $('#mkl').innerHTML=(data&&data.rows||[]).map(r=>`<option value="${r.name.replace(/"/g,'&quot;')}">`).join(''); $('#mkr').innerHTML=''; $('#mk').classList.add('on'); }
