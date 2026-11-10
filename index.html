@@ -136,7 +136,7 @@ header img{height:34px}
 .p-new{background:rgba(57,135,229,.16);color:var(--inv);margin-left:4px;vertical-align:1px}
 .td{cursor:pointer}.tx{display:none;margin-top:8px}.td.ex .tx{display:block}
 .tl{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800;margin:9px 0 3px}.tv{font-size:12.5px;line-height:1.5}
-.tsay{font-size:12.5px;line-height:1.6;white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:9px 10px}
+.tsay{display:block;width:100%;box-sizing:border-box;border:1px solid var(--line,transparent);color:inherit;font:inherit;resize:vertical;min-height:90px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;background:var(--card2);border-radius:10px;padding:9px 10px}
 .tbtn{margin-top:6px;border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:9px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}.tbtn.g{background:var(--gold);color:var(--onGold);border-color:var(--gold)}
 .tre{min-height:60px;font-size:14px;margin-top:2px}.trow{display:flex;gap:6px}.trp{font-size:12px;margin-top:4px;color:var(--txt);opacity:.85}
 .plan{background:var(--card2);border-radius:14px;padding:11px 12px;margin-bottom:6px}.ph{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;cursor:pointer}.ph span:last-child{font-size:11.5px;color:var(--gold);font-weight:700}
@@ -424,6 +424,8 @@ $('#mk').onclick=e=>{ if(e.target.id==='mk') $('#mk').classList.remove('on'); };
 document.querySelectorAll('#mkc button').forEach(b=>b.onclick=()=>mkSetCur(b.dataset.c));
 $('#mko').onclick=()=>mkSetOpen(!mkOpen);
 $('#mkn').oninput=mkHint; $('#mkgo').onclick=mkCreate;
+let sdEdited=false;
+function sdSetM(){ const m=$('#sdm'), PH='(اللينك ينضاف بعد Prepare files)'; if(!sdEdited){ m.value=sdMsg(); return; } if(sdLink && m.value.includes(PH)) m.value=m.value.replace(PH,sdLink); }
 let sdRow=null, sdW='3m', sdFiles=null, sdLink='', sdLk='none', sdLkAmt=null, sdWithMsg=true;
 const SDW={'3m':'آخر 3 أشهر','ytd':'من بداية السنة','full':'كامل'};
 function sdInvSum(){ return [...document.querySelectorAll('#sdi input:checked')].reduce((t,i)=>{ const x=docInfo(decodeURIComponent(i.dataset.f)); return t+(x&&x.bal?x.bal:0); },0); }
@@ -446,8 +448,8 @@ function sdOpen(name){ sdRow=(data.rows||[]).find(x=>x.name===name); if(!sdRow) 
   const inv=(sdRow.docs||[]).map(d=>({...d,...(docInfo(d.name)||{})})).filter(d=>d.k==='i').sort((a,b)=>(a.ym||'').localeCompare(b.ym||''));
   $('#sdil').style.display=inv.length?'':'none';
   $('#sdi').innerHTML=inv.map(d=>`<label class="ck"><input type="checkbox" checked data-f="${encodeURIComponent(d.name)}"> ${d.mo?d.mo+' · ':''}${d.label}<em>${d.bal!=null?sdRow.cur+' '+fmt(d.bal):''}</em></label>`).join('');
-  document.querySelectorAll('#sdi input').forEach(i=>i.onchange=()=>{ $('#sdm').value=sdMsg(); sdReset(); });
-  $('#sdm').value=sdMsg(); sdReset(); $('#sd').classList.add('on'); }
+  document.querySelectorAll('#sdi input').forEach(i=>i.onchange=()=>{ sdSetM(); sdReset(); });
+  sdEdited=false; sdSetM(); sdReset(); $('#sd').classList.add('on'); }
 async function sdFetch(f){ if(fileCache[f]) return fileCache[f];
   const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&file='+encodeURIComponent(f)); if(!d.ok) throw new Error(d.error||'file');
   const bin=atob(d.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
@@ -462,7 +464,7 @@ async function sdGo(){
   try{
     if(sdLk!=='none' && !sdLink){ let q=FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&mklink=1&title='+encodeURIComponent(sdRow.name)+'&cur='+(['USD','AED','SAR'].includes(sdRow.cur)?sdRow.cur:'USD');
       if(sdLk==='open') q+='&open=1'; else { const a = sdLk==='full' ? sdRow.due : parseFloat(($('#sdca').value||'').replace(/,/g,'')); if(!(a>=2)) throw new Error('Enter the custom amount (min 2)'); sdLkAmt=a; q+='&amount='+a.toFixed(2); }
-      const d=await jsonp(q); if(!d.ok) throw new Error('Mamo: '+(d.error||'')); sdLink=d.link.short||d.link.url; $('#sdm').value=sdMsg();
+      const d=await jsonp(q); if(!d.ok) throw new Error('Mamo: '+(d.error||'')); sdLink=d.link.short||d.link.url; sdSetM();
       if(d.reused) $('#sdr').innerHTML='<div class="hint">Using this doctor’s existing open link ✓</div>'; }
     const st=sdW==='none'?null:(sdRow.docs||[]).find(d=>d.name.endsWith('__statement-'+sdW+'.pdf'));
     const names=(st?[st.name]:[]).concat([...document.querySelectorAll('#sdi input:checked')].map(i=>decodeURIComponent(i.dataset.f)));
@@ -472,10 +474,10 @@ async function sdGo(){
   }catch(e){ $('#sdgo').disabled=false; $('#sdgo').textContent='Prepare files'; $('#sdr').innerHTML=`<div class="err">${String(e.message||e).replace(/</g,'&lt;')}</div>`; } }
 $('#sdx').onclick=()=>$('#sd').classList.remove('on');
 $('#sd').onclick=e=>{ if(e.target.id==='sd') $('#sd').classList.remove('on'); };
-document.querySelectorAll('#sds button').forEach(b=>b.onclick=()=>{ sdW=b.dataset.w; document.querySelectorAll('#sds button').forEach(x=>x.classList.toggle('on',x===b)); $('#sdm').value=sdMsg(); sdReset(); });
+document.querySelectorAll('#sds button').forEach(b=>b.onclick=()=>{ sdW=b.dataset.w; document.querySelectorAll('#sds button').forEach(x=>x.classList.toggle('on',x===b)); sdSetM(); sdReset(); });
 function sdSetLk(l){ sdLk=l; sdLink=''; sdLkAmt=null; document.querySelectorAll('#sdlk button').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); $('#sdca').style.display=l==='custom'?'':'none'; }
-document.querySelectorAll('#sdlk button').forEach(b=>b.onclick=()=>{ sdSetLk(b.dataset.l); if(sdRow){ if(b.dataset.l==='custom'){ const v=sdInvSum(); if(v>0){ $('#sdca').value=v.toFixed(2); sdLkAmt=v; } } $('#sdm').value=sdMsg(); sdReset(); } });
-$('#sdca').oninput=()=>{ sdLink=''; const v=parseFloat(($('#sdca').value||'').replace(/,/g,'')); sdLkAmt=v>0?v:null; $('#sdm').value=sdMsg(); sdReset(); };
+document.querySelectorAll('#sdlk button').forEach(b=>b.onclick=()=>{ sdSetLk(b.dataset.l); if(sdRow){ if(b.dataset.l==='custom'){ const v=sdInvSum(); if(v>0){ $('#sdca').value=v.toFixed(2); sdLkAmt=v; } } sdSetM(); sdReset(); } });
+$('#sdca').oninput=()=>{ sdLink=''; const v=parseFloat(($('#sdca').value||'').replace(/,/g,'')); sdLkAmt=v>0?v:null; sdSetM(); sdReset(); };
 $('#sdgo').onclick=sdGo;
 function sdSetMsg(on){ sdWithMsg=on; document.querySelectorAll('#sdmm button').forEach(b=>b.classList.toggle('on',(b.dataset.m==='1')===on)); $('#sd').classList.toggle('nomsg',!on); if(sdFiles) $('#sdr').innerHTML=''; }
 document.querySelectorAll('#sdmm button').forEach(b=>b.onclick=()=>sdSetMsg(b.dataset.m==='1'));
@@ -522,7 +524,8 @@ function renderOverview(){
   document.querySelectorAll('.td [data-tk]').forEach(el=>el.onclick=e=>{ e.stopPropagation(); todoAct('done',el.dataset.tk,el); });
   document.querySelectorAll('.td [data-tdel]').forEach(el=>el.onclick=e=>{ e.stopPropagation(); todoAct('del',el.dataset.tdel,el); });
   document.querySelectorAll('.td[data-tx]').forEach(el=>el.onclick=e=>{ if(e.target.closest('button,textarea')) return; const id=el.dataset.tx; tdExp[id]=!tdExp[id]; el.classList.toggle('ex',!!tdExp[id]); });
-  document.querySelectorAll('[data-copy]').forEach(el=>el.onclick=async e=>{ e.stopPropagation(); const x=(data.todo||[]).find(y=>y.id===el.dataset.copy); try{ await navigator.clipboard.writeText(x.say); el.textContent='Copied ✓'; }catch(err){ prompt('Copy',x.say); } });
+  document.querySelectorAll('[data-say]').forEach(el=>el.oninput=()=>{ tdSay[el.dataset.say]=el.value; });
+  document.querySelectorAll('[data-copy]').forEach(el=>el.onclick=async e=>{ e.stopPropagation(); const ta=document.querySelector('[data-say="'+el.dataset.copy+'"]'), x={say: ta?ta.value:((data.todo||[]).find(y=>y.id===el.dataset.copy)||{}).say}; try{ await navigator.clipboard.writeText(x.say); el.textContent='Copied ✓'; }catch(err){ prompt('Copy',x.say); } });
   document.querySelectorAll('[data-note]').forEach(el=>el.onclick=async e=>{ e.stopPropagation(); const id=el.dataset.note, t=$('#re-'+id).value.trim(); el.disabled=true; el.textContent='Saving…';
     try{ const d=await jsonp(FEED+'?key='+encodeURIComponent(store.get('pin')||'')+'&todo=note&id='+encodeURIComponent(id)+'&text='+encodeURIComponent(t)); if(d.ok){ data.todo=d.todo; el.textContent='Saved ✓'; } }catch(err){ el.disabled=false; el.textContent='Save'; } });
   document.querySelectorAll('[data-tgrp]').forEach(el=>el.onclick=()=>{ const k=el.dataset.tgrp; tdOpen[k]=!tdOpen[k]; renderOverview(); });
@@ -532,7 +535,7 @@ function renderOverview(){
 const tdOpen={}; const invAll=new Set(); const paidShow=new Set();
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function dayLabel(iso){ const n=dayDiff(iso), d=new Date(iso+'T00:00:00'), base=`${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; return n===0?'Today · '+base:n===1?'Tomorrow · '+base:base; }
-const tdExp={};
+const tdExp={}; const tdSay={};
 const esc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function todoItem(x){ const r=(data.rows||[]).find(y=>y.name===x.name), paid=!x.done && r && r.lastPay && x.created && r.lastPay>=x.created, ex=tdExp[x.id];
   return `<div class="td ${x.done?'dn':''} ${ex?'ex':''}" data-tx="${x.id}"><button class="tk" data-tk="${x.id}" aria-label="done">${x.done?'✓':(x.n||'•')}</button><div class="tb">
@@ -540,7 +543,7 @@ function todoItem(x){ const r=(data.rows||[]).find(y=>y.name===x.name), paid=!x.
     <div class="ta2" dir="auto">${esc(x.act)}</div>${x.why||paid?`<div class="tw" dir="auto">${paid?'<span class="pill2 p-ok">Paid '+r.lastPay.slice(8,10)+'/'+r.lastPay.slice(5,7)+'</span> ':''}${esc(x.why)}</div>`:''}
     ${x.reply&&!ex?`<div class="trp" dir="auto">💬 ${esc(x.reply)}</div>`:''}
     <div class="tx">${x.habit?`<div class="tl">How he pays</div><div class="tv" dir="auto">${esc(x.habit)}</div>`:''}${x.plan?`<div class="tl">Plan</div><div class="tv" dir="auto">${esc(x.plan)}</div>`:''}
-      ${x.say?`<div class="tl">What to say</div><div class="tsay" dir="auto">${esc(x.say)}</div><button class="tbtn" data-copy="${x.id}">Copy message</button>`:''}
+      ${x.say?`<div class="tl">What to say</div><textarea class="tsay" dir="auto" data-say="${x.id}" rows="5" onclick="event.stopPropagation()">${esc(tdSay[x.id]!=null?tdSay[x.id]:x.say)}</textarea><button class="tbtn" data-copy="${x.id}">Copy message</button>`:''}
       <div class="tl">What did he say?</div><textarea class="fi tre" dir="auto" id="re-${x.id}" placeholder="اكتب شنو قال الدكتور… (Claude يقراها ويحدّث الخطة)">${esc(x.reply)}</textarea>
       <div class="trow"><button class="tbtn g" data-note="${x.id}">Save</button>${x.manual?`<button class="tbtn" data-tdel="${x.id}">Delete</button>`:''}</div></div></div></div>`; }
 function todoHtml(){ const L=(data.todo||[]).slice(), t=todayIso();
@@ -658,9 +661,10 @@ async function clOpen(name){ $('#clt').textContent=name; $('#clb').innerHTML='<d
     const url=d.link||new URL('clinic.html?k='+d.token,location.href).href, pin=d.pin||'';
     const msg=`مرحبا، تحية طيبة من Dento Art Dental Lab 🌷\n\nهذا رابط حسابكم الخاص — تكدرون تشوفون الرصيد والفواتير والدفعات وكشف الحساب بأي وقت، وتدفعون أونلاين من نفس الصفحة:\n\n🔗 ${url}\n🔑 رمز الدخول: ${pin}\n\n(الرابط والرمز خاصين بعيادتكم فقط)`;
     $('#clb').innerHTML=`<div class="res"><div class="fl" style="margin-top:0">Private page for this clinic</div><div class="u" style="font-size:17px">${url}</div><div class="fl">Access code</div><div class="u" style="font-size:26px;letter-spacing:6px">${pin}</div>${d.pay?`<div class="hint">Pay-now link on the page: <b>${d.pay}</b></div>`:'<div class="hint">No pay-now link (currency not supported by Mamo)</div>'}
-      <div class="acts"><button id="clcp">Copy</button><button id="clsh">Send</button><button id="clop">Open</button></div></div>`;
-    $('#clcp').onclick=async()=>{ try{ await navigator.clipboard.writeText(msg); $('#clcp').textContent='Copied ✓'; }catch(e){ prompt('Copy',msg); } };
-    $('#clsh').onclick=()=>{ if(navigator.share) navigator.share({text:msg}).catch(()=>{}); else location.href='https://wa.me/?text='+encodeURIComponent(msg); };
+      <div class="fl">Message (you can edit it)</div><textarea class="fi ta" id="clm" dir="auto"></textarea><div class="acts"><button id="clcp">Copy</button><button id="clsh">Send</button><button id="clop">Open</button></div></div>`;
+    $('#clm').value=msg; const clMsg=()=>$('#clm').value;
+    $('#clcp').onclick=async()=>{ const msg=clMsg(); try{ await navigator.clipboard.writeText(msg); $('#clcp').textContent='Copied ✓'; }catch(e){ prompt('Copy',msg); } };
+    $('#clsh').onclick=()=>{ const msg=clMsg(); if(navigator.share) navigator.share({text:msg}).catch(()=>{}); else location.href='https://wa.me/?text='+encodeURIComponent(msg); };
     $('#clop').onclick=()=>window.open(url,'_blank');
   }catch(e){ $('#clb').innerHTML=`<div class="err">Could not create the link (${String(e.message||e).replace(/</g,'&lt;')})</div>`; } }
 $('#clx').onclick=()=>$('#cls').classList.remove('on');
