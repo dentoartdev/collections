@@ -271,10 +271,13 @@ const VIA_SVG={
 function viaIcon(v){ const t=v.toLowerCase(); return VIA_SVG[t.startsWith('mamo')?'mamo':t.startsWith('cash')?'cash':t.startsWith('bank')?'bank':t.startsWith('cheque')?'cheque':'']||''; }
 function renderPays(rows){
   const q=$('#q').value.trim().toLowerCase();
-  const list = rows.filter(r=>r.d!==null&&(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q))).sort((a,b)=>a.d-b.d||b.lastAmt-a.lastAmt);
-  const grp = d => d<=7?'This week':d<=31?'This month':d<=92?'Last 3 months':'Earlier';
+  const pd = r => r.lastPay || dmy(r.lastPayText) || '';
+  const list = rows.filter(r=>r.d!==null&&(!curF||r.cur===curF)&&(!q||r.name.toLowerCase().includes(q))).sort((a,b)=>pd(b).localeCompare(pd(a))||b.lastAmt-a.lastAmt);   // newest payment date first
+  const t0=todayIso(), ym0=t0.slice(0,7), MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const grp = r => { const d=pd(r); if(!d) return 'Earlier'; if(r.d===0) return 'Today'; if(r.d===1) return 'Yesterday'; if(r.d<=6) return 'This week';
+    if(d.slice(0,7)===ym0) return 'Earlier this month'; return MN[+d.slice(5,7)-1]+' '+d.slice(0,4); };
   let html='', last='';
-  list.forEach((r,i)=>{ const g=grp(r.d); if(g!==last){ html+=`<div class="grp">${g}</div>`; last=g; }
+  list.forEach((r,i)=>{ const g=grp(r); if(g!==last){ html+=`<div class="grp">${g}</div>`; last=g; }
     const ago = r.d===0?'today':r.d===1?'yesterday':r.d+' days ago';
     html+=`<div class="row" style="animation-delay:${Math.min(i,20)*18}ms"><div class="nm">${r.name.replace(/</g,'&lt;')}</div><div class="paid"><small>${r.cur}</small>+${fmt(r.lastAmt)}</div><div class="meta"><b>${r.lastPayText}</b> · ${ago}${r.via?`<span class="via">${viaIcon(r.via)}${r.via}</span>`:''}</div><span class="rem">Remaining <b>${r.cur} ${fmt(r.due)}</b></span></div>`; });
   $('#list').innerHTML = html || '<div class="empty">No payments</div>';
