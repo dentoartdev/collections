@@ -478,6 +478,7 @@ $('#sdca').oninput=()=>{ sdLink=''; const v=parseFloat(($('#sdca').value||'').re
 $('#sdgo').onclick=sdGo;
 function sdSetMsg(on){ sdWithMsg=on; document.querySelectorAll('#sdmm button').forEach(b=>b.classList.toggle('on',(b.dataset.m==='1')===on)); $('#sd').classList.toggle('nomsg',!on); if(sdFiles) $('#sdr').innerHTML=''; }
 document.querySelectorAll('#sdmm button').forEach(b=>b.onclick=()=>sdSetMsg(b.dataset.m==='1'));
+$('#sdm').addEventListener('input',()=>{ sdEdited=true; });
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-send]'); if(!b) return; e.stopPropagation(); sdOpen(decodeURIComponent(b.dataset.send)); },true);
 // ===== Overview =====
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
