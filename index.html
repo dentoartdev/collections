@@ -214,7 +214,7 @@ footer{text-align:center;color:#555;font-size:11px;margin-top:26px}
 <div class="fl">Statement</div><div class="seg seg4" id="sds"><button data-w="3m" class="on">3 Months</button><button data-w="ytd">This Year</button><button data-w="full">Full</button><button data-w="none">None</button></div>
 <div class="fl" id="sdil">Invoices</div><div id="sdi"></div>
 <div class="fl">Mamo payment link</div><div class="seg seg4" id="sdlk"><button data-l="none" class="on">None</button><button data-l="open">Open</button><button data-l="full">Full</button><button data-l="custom">Custom</button></div><input class="fi" id="sdca" inputmode="decimal" placeholder="Amount" style="display:none;margin-top:6px">
-<div class="fl">Send</div><div class="seg seg2" id="sdmm"><button data-m="1" class="on">With message</button><button data-m="0">Files only</button></div><textarea class="fi ta" id="sdm" dir="auto" style="margin-top:8px"></textarea>
+<div style="display:none"><div class="seg seg2" id="sdmm"><button data-m="1" class="on">With message</button><button data-m="0">Files only</button></div><textarea class="fi ta" id="sdm" dir="auto"></textarea></div>
 <button class="go wa2" id="sdgo">Prepare files</button><div class="hint" id="sdh">Your phone's share menu opens → choose WhatsApp → choose the doctor.</div><div id="sdr"></div>
 </div></div>
 <div class="sheet" id="pm"><div class="sh">
@@ -458,7 +458,7 @@ async function sdFetch(f){ if(fileCache[f]) return fileCache[f];
   const bin=atob(d.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
   return fileCache[f]=new File([u8],niceName(f),{type:'application/pdf'}); }
 async function sdGo(){
-  if(sdFiles){ const text=sdWithMsg?$('#sdm').value:''; if(text){ try{ await navigator.clipboard.writeText(text); }catch(e){} }
+  if(sdFiles){ const text=sdLink||''; if(text){ try{ await navigator.clipboard.writeText(text); }catch(e){} }
     try{ if(navigator.canShare && navigator.canShare({files:sdFiles})) await navigator.share(text?{files:sdFiles, text}:{files:sdFiles}); else throw new Error('noshare'); $('#sdr').innerHTML=text?'<div class="hint">Shared ✓ — the message is also copied; if WhatsApp didn’t include it, just paste it.</div>':'<div class="hint">Shared ✓ (files only)</div>'; }
     catch(e){ if(e.name==='AbortError') return; sdFiles.forEach(f=>{ const u=URL.createObjectURL(f),a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); });
       if(text) location.href='https://wa.me/?text='+encodeURIComponent(text); }
