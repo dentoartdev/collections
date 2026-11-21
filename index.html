@@ -459,7 +459,7 @@ async function sdFetch(f){ if(fileCache[f]) return fileCache[f];
   return fileCache[f]=new File([u8],niceName(f),{type:'application/pdf'}); }
 async function sdGo(){
   if(sdFiles){ const text=sdLink||''; if(text){ try{ await navigator.clipboard.writeText(text); }catch(e){} }
-    try{ if(navigator.canShare && navigator.canShare({files:sdFiles})) await navigator.share(text?{files:sdFiles, text}:{files:sdFiles}); else throw new Error('noshare'); $('#sdr').innerHTML=text?'<div class="hint">Shared ✓ — the message is also copied; if WhatsApp didn’t include it, just paste it.</div>':'<div class="hint">Shared ✓ (files only)</div>'; }
+    try{ if(navigator.canShare && navigator.canShare({files:sdFiles})) await navigator.share(text?{files:sdFiles, text}:{files:sdFiles}); else throw new Error('noshare'); $('#sdr').innerHTML=text?'<div class="hint">Shared ✓ — the link is also copied; if WhatsApp didn’t include it, just paste it.</div>':'<div class="hint">Shared ✓ (files only)</div>'; }
     catch(e){ if(e.name==='AbortError') return; sdFiles.forEach(f=>{ const u=URL.createObjectURL(f),a=document.createElement('a'); a.href=u; a.download=f.name; document.body.appendChild(a); a.click(); a.remove(); });
       if(text) location.href='https://wa.me/?text='+encodeURIComponent(text); }
     return; }
